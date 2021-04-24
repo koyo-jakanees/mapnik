@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,14 @@
 // std
 #include <cstdint>
 #include <string>
+// icu
+#if (U_ICU_VERSION_MAJOR_NUM >= 59)
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
+#include <mapnik/warning_ignore.hpp>
+#include <unicode/unistr.h>
+MAPNIK_DISABLE_WARNING_POP
+#endif
 
 struct UConverter;
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -197,7 +197,7 @@ mapnik::csv_line parse_line(char const* start, char const* end, char separator, 
     namespace x3 = boost::spirit::x3;
     auto parser = x3::with<mapnik::grammar::quote_tag>(quote)
         [ x3::with<mapnik::grammar::separator_tag>(separator)
-          [ mapnik::csv_line_grammar()]
+          [ mapnik::grammar::line ]
             ];
 
     mapnik::csv_line values;
@@ -233,7 +233,7 @@ struct ignore_case_equal_pred
 bool ignore_case_equal(std::string const& s0, std::string const& s1)
 {
     return std::equal(s0.begin(), s0.end(),
-                      s1.begin(), ignore_case_equal_pred());
+                      s1.begin(), s1.end(), ignore_case_equal_pred());
 }
 
 void csv_file_parser::add_feature(mapnik::value_integer, mapnik::csv_line const & )
@@ -505,8 +505,8 @@ mapnik::geometry::geometry<double> extract_geometry(std::vector<std::string> con
     return geom;
 }
 
-template void csv_file_parser::parse_csv_and_boxes(std::istream & csv_file, std::vector<std::pair<mapnik::box2d<double>, std::pair<std::size_t, std::size_t>>> & boxes);
+template void csv_file_parser::parse_csv_and_boxes(std::istream & csv_file, std::vector<std::pair<mapnik::box2d<double>, std::pair<std::uint64_t, std::uint64_t>>> & boxes);
 
-template void csv_file_parser::parse_csv_and_boxes(std::istream & csv_file, std::vector<std::pair<mapnik::box2d<float>, std::pair<std::size_t, std::size_t>>> & boxes);
+template void csv_file_parser::parse_csv_and_boxes(std::istream & csv_file, std::vector<std::pair<mapnik::box2d<float>, std::pair<std::uint64_t, std::uint64_t>>> & boxes);
 
 } // namespace csv_utils

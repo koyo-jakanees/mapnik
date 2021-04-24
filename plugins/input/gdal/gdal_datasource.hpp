@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -68,6 +68,7 @@ private:
     bool shared_dataset_;
     boost::optional<double> nodata_value_;
     double nodata_tolerance_;
+    int64_t max_image_area_;
 };
 
 #endif // GDAL_DATASOURCE_HPP

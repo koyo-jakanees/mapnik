@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,24 +23,22 @@
 #ifndef MAPNIK_JSON_UNICODE_STRING_GRAMMAR_X3_HPP
 #define MAPNIK_JSON_UNICODE_STRING_GRAMMAR_X3_HPP
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 
 namespace mapnik { namespace json { namespace grammar {
 
 namespace x3 = boost::spirit::x3;
-class unicode_string_tag;
-using unicode_string_grammar_type = x3::rule<unicode_string_tag, std::string>;
+using unicode_string_grammar_type = x3::rule<class unicode_string_tag, std::string>;
+
+unicode_string_grammar_type const unicode_string = "Unicode String";
 
 BOOST_SPIRIT_DECLARE(unicode_string_grammar_type);
 
-}
-
-grammar::unicode_string_grammar_type const& unicode_string_grammar();
-
-}}
+}}}
 
 #endif // MAPNIK_JSON_UNICODE_STRING_GRAMMAR_X3_HPP

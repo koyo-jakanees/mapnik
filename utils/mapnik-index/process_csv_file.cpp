@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2015 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,12 +28,13 @@
 #include <mapnik/util/utf_conv_win.hpp>
 
 #if defined(MAPNIK_MEMORY_MAPPED_FILE)
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 #include <mapnik/mapped_memory_cache.hpp>
 #endif
 
@@ -93,7 +94,7 @@ std::pair<bool,typename T::value_type::first_type> process_csv_file(T & boxes, s
 }
 
 using box_type = mapnik::box2d<float>;
-using item_type = std::pair<box_type, std::pair<std::size_t, std::size_t>>;
+using item_type = std::pair<box_type, std::pair<std::uint64_t, std::uint64_t>>;
 using boxes_type = std::vector<item_type>;
 template std::pair<bool,box_type> process_csv_file(boxes_type&, std::string const&, std::string const&, char, char);
 

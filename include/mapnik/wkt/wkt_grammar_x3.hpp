@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,10 +23,11 @@
 #ifndef MAPNIK_WKT_GRAMMAR_X3_HPP
 #define MAPNIK_WKT_GRAMMAR_X3_HPP
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <mapnik/geometry.hpp>
 
@@ -36,14 +37,11 @@ namespace x3 = boost::spirit::x3;
 struct wkt_class; // top-most ID
 using wkt_grammar_type = x3::rule<wkt_class, mapnik::geometry::geometry<double>>;
 
+wkt_grammar_type const wkt("wkt");
+
 BOOST_SPIRIT_DECLARE(wkt_grammar_type);
 
 }}
-
-namespace mapnik
-{
-grammar::wkt_grammar_type const& wkt_grammar();
-}
 
 
 #endif // MAPNIK_WKT_GRAMMAR_X3_HPP

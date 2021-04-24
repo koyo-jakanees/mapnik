@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,8 +33,6 @@ using x3::standard_wide::char_;
 using x3::lexeme;
 auto create_string = [](auto & ctx) { _val(ctx).push_back(_attr(ctx)); };
 auto create_attribute = [](auto & ctx) { _val(ctx).push_back(mapnik::attribute(_attr(ctx))); };
-// top-most rule
-path_expression_grammar_type const path_expression("path_expression");
 // rules
 x3::rule<class attr_expression, std::string> const attr_expression("attribute");
 x3::rule<class str_expression, std::string> const str_expression("string");
@@ -50,14 +48,5 @@ BOOST_SPIRIT_DEFINE(
 );
 
 }}
-
-namespace mapnik {
-
-grammar::path_expression_grammar_type const& path_expression_grammar()
-{
-    return grammar::path_expression;
-}
-
-}
 
 #endif //MAPNIK_PATH_EXPRESSIONS_GRAMMAR_X3_DEF_HPP

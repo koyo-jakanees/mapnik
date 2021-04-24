@@ -7,12 +7,13 @@
 #include <type_traits>
 #include <iterator>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range/iterator_range.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // helper namespace to ensure correct functionality
 namespace aux{
@@ -127,7 +128,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for(auto const& p : zip_crange(ls1, ls2))
+        for (auto const p : zip_crange(ls1, ls2))
         {
             REQUIRE(p.template get<0>().x == Approx(p.template get<1>().x));
             REQUIRE(p.template get<0>().y == Approx(p.template get<1>().y));
@@ -142,7 +143,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for (auto const& p : zip_crange(p1, p2))
+        for (auto const p : zip_crange(p1, p2))
         {
             (*this)(static_cast<std::vector<point<T>> const&>(p.template get<0>()),
                     static_cast<std::vector<point<T>> const&>(p.template get<1>()));
@@ -172,7 +173,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for (auto const& ls : zip_crange(mls1, mls2))
+        for (auto const ls : zip_crange(mls1, mls2))
         {
             (*this)(ls.template get<0>(),ls.template get<1>());
         }
@@ -186,7 +187,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for (auto const& poly : zip_crange(mpoly1, mpoly2))
+        for (auto const poly : zip_crange(mpoly1, mpoly2))
         {
             (*this)(poly.template get<0>(),poly.template get<1>());
         }
@@ -202,7 +203,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for (auto const& g : zip_crange(c1, c2))
+        for (auto const g : zip_crange(c1, c2))
         {
             assert_g_equal(g.template get<0>(),g.template get<1>());
         }
@@ -216,7 +217,7 @@ struct geometry_equal_visitor
             REQUIRE(false);
         }
 
-        for (auto const& g : zip_crange(c1, c2))
+        for (auto const g : zip_crange(c1, c2))
         {
             assert_g_equal(g.template get<0>(),g.template get<1>());
         }

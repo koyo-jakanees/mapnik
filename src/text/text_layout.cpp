@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,12 +27,14 @@
 #include <mapnik/feature.hpp>
 #include <mapnik/symbolizer.hpp>
 #include <mapnik/text/harfbuzz_shaper.hpp>
+#include <mapnik/util/math.hpp>
 #include <mapnik/make_unique.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <unicode/brkiter.h>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <algorithm>
 #include <memory>
@@ -117,7 +119,7 @@ text_layout::text_layout(face_manager_freetype & font_manager,
         if (!wrap_str.empty()) wrap_char_ = wrap_str[0];
         wrap_width_ = util::apply_visitor(extract_value<value_double>(feature,attrs), layout_properties_.wrap_width);
         double angle = util::apply_visitor(extract_value<value_double>(feature,attrs), layout_properties_.orientation);
-        orientation_.init(angle * M_PI/ 180.0);
+        orientation_.init(util::radians(angle));
         wrap_before_ = util::apply_visitor(extract_value<value_bool>(feature,attrs), layout_properties_.wrap_before);
         repeat_wrap_char_ = util::apply_visitor(extract_value<value_bool>(feature,attrs), layout_properties_.repeat_wrap_char);
         rotate_displacement_ = util::apply_visitor(extract_value<value_bool>(feature,attrs), layout_properties_.rotate_displacement);
@@ -207,6 +209,7 @@ void text_layout::layout()
 // At the end everything that is left over is added as the final line.
 void text_layout::break_line_icu(std::pair<unsigned, unsigned> && line_limits)
 {
+    using BreakIterator = icu::BreakIterator;
     text_line line(line_limits.first, line_limits.second);
     shape_text(line);
 
@@ -228,7 +231,7 @@ void text_layout::break_line_icu(std::pair<unsigned, unsigned> && line_limits)
     }
 
     mapnik::value_unicode_string const& text = itemizer_.text();
-    Locale locale; // TODO: Is the default constructor correct?
+    icu::Locale locale; // TODO: Is the default constructor correct?
     UErrorCode status = U_ZERO_ERROR;
     std::unique_ptr<BreakIterator> breakitr(BreakIterator::createLineInstance(locale, status));
 
@@ -336,6 +339,7 @@ inline int adjust_last_break_position (int pos, bool repeat_wrap_char)
 
 void text_layout::break_line(std::pair<unsigned, unsigned> && line_limits)
 {
+    using BreakIterator = icu::BreakIterator;
     text_line line(line_limits.first, line_limits.second);
     shape_text(line);
     double scaled_wrap_width = wrap_width_ * scale_factor_;

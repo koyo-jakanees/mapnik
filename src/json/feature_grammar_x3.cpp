@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,10 @@ namespace mapnik { namespace json { namespace grammar {
 BOOST_SPIRIT_INSTANTIATE(feature_grammar_type, iterator_type, feature_context_type);
 BOOST_SPIRIT_INSTANTIATE(geometry_grammar_type, iterator_type, phrase_parse_context_type);
 
-BOOST_SPIRIT_INSTANTIATE_UNUSED(feature_grammar_type, iterator_type, feature_context_type);
+#if BOOST_VERSION >= 107000
+BOOST_SPIRIT_INSTANTIATE(feature_grammar_type, iterator_type, feature_context_const_type);
+#else
 BOOST_SPIRIT_INSTANTIATE_UNUSED(feature_grammar_type, iterator_type, feature_context_const_type);
+#endif
 
 }}}

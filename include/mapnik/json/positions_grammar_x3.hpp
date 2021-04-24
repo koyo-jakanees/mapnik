@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,10 +23,11 @@
 #ifndef MAPNIK_JSON_POSITIONS_GRAMMAR_X3_HPP
 #define MAPNIK_JSON_POSITIONS_GRAMMAR_X3_HPP
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // mapnik
 #include <mapnik/geometry.hpp>
@@ -39,12 +40,10 @@ namespace grammar {
 namespace x3 = boost::spirit::x3;
 using positions_grammar_type = x3::rule<class positions_tag, positions>;
 
+positions_grammar_type const positions = "Positions";
+
 BOOST_SPIRIT_DECLARE(positions_grammar_type);
 
-}
-
-grammar::positions_grammar_type const& positions_grammar();
-
-}}
+}}}
 
 #endif // MAPNIK_JSON_POSITIONS_GRAMMAR_X3_HPP

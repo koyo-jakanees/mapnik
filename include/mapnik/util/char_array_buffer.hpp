@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -66,6 +66,13 @@ private:
     std::streamsize showmanyc()
     {
         return end_ - current_;
+    }
+
+    pos_type seekpos(pos_type off,
+                     std::ios_base::openmode /*which*/)
+    {
+        current_ = std::min(begin_ + off, end_);
+        return pos_type(off_type(current_ - begin_));
     }
 
     pos_type seekoff(off_type off, std::ios_base::seekdir dir,

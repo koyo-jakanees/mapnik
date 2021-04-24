@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,10 +24,12 @@
 #define MAPNIK_SVG_GRAMMAR_CONFIG_X3_HPP
 
 #include <mapnik/svg/svg_path_parser.hpp>
-#pragma GCC diagnostic push
+
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik { namespace svg { namespace grammar {
 
@@ -39,12 +41,18 @@ namespace x3 = boost::spirit::x3;
 using space_type = x3::standard::space_type;
 using iterator_type = char const*;
 
-using phrase_parse_context_type = x3::phrase_parse_context<space_type>::type;
-using svg_parse_context_type = x3::with_context<relative_tag, std::reference_wrapper<bool> const,
-                                                x3::with_context<svg_path_tag,std::reference_wrapper<svg_converter_type> const,
-                                                                 phrase_parse_context_type>::type>::type;
+#if BOOST_VERSION >= 106700
+using svg_converter_wrapper_type = svg_converter_type;
+using relative_type = bool;
+#else
+using svg_converter_wrapper_type = std::reference_wrapper<svg_converter_type> const;
+using relative_type = std::reference_wrapper<bool> const;
+#endif
 
-inline double deg2rad(double deg) {return (M_PI * deg) / 180.0;}
+using phrase_parse_context_type = x3::phrase_parse_context<space_type>::type;
+using svg_parse_context_type = x3::context<relative_tag, relative_type,
+                                           x3::context<svg_path_tag, svg_converter_wrapper_type,
+                                                       phrase_parse_context_type>>;
 
 }}}
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -92,11 +92,10 @@ auto on_feature_callback = [] (auto const& ctx)
     x3::get<feature_callback_tag>(ctx)(_attr(ctx));
 };
 
-namespace { auto const& geojson_value = geojson_grammar();}
 // import unicode string rule
-namespace { auto const& geojson_string = unicode_string_grammar(); }
+namespace { auto const& geojson_string = unicode_string; }
 // import positions rule
-namespace { auto const& positions_rule = positions_grammar(); }
+namespace { auto const& positions_rule = positions; }
 
 // extract bounding box from GeoJSON Feature
 
@@ -144,9 +143,7 @@ auto const coordinates_rule_def = lit("\"coordinates\"") >> lit(':') >> position
 
 auto const bounding_box_def = raw[lit('{')[open_bracket]
                                   >> *(eps[check_brackets] >>
-                                       ((lit("\"FeatureCollection\"") > eps(false))
-                                        |
-                                        lit('{')[open_bracket]
+                                       (lit('{')[open_bracket]
                                         |
                                         lit('}')[close_bracket]
                                         |
@@ -185,12 +182,19 @@ void extract_bounding_boxes(Iterator& start, Iterator const& end, Boxes & boxes)
     extract_positions<iterator_type, Boxes> callback(start, boxes);
     auto keys = mapnik::json::get_keys();
     std::size_t bracket_counter = 0;
+#if BOOST_VERSION >= 106700
+    auto feature_collection_impl = x3::with<mapnik::json::grammar::bracket_tag>(bracket_counter)
+        [x3::with<mapnik::json::grammar::feature_callback_tag>(callback)
+         [x3::with<mapnik::json::grammar::keys_tag>(keys)
+          [mapnik::json::grammar::feature_collection]
+             ]];
+#else
     auto feature_collection_impl = x3::with<mapnik::json::grammar::bracket_tag>(std::ref(bracket_counter))
         [x3::with<mapnik::json::grammar::feature_callback_tag>(std::ref(callback))
          [x3::with<mapnik::json::grammar::keys_tag>(std::ref(keys))
           [mapnik::json::grammar::feature_collection]
              ]];
-
+#endif
     if (!x3::phrase_parse(start, end, feature_collection_impl, space_type()))
     {
         throw std::runtime_error("Can't extract bounding boxes");

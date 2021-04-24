@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,15 +26,16 @@
 
 #include <mapnik/image_filter_grammar_x3.hpp>
 #include <mapnik/image_filter_types.hpp>
-#include <mapnik/css_color_grammar_x3.hpp>
+#include <mapnik/css/css_color_grammar_x3.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp> // spirit support
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -108,10 +109,8 @@ auto percent = [](auto & ctx)
 x3::uint_parser<unsigned, 10, 1, 3> radius;
 
 // Import the expression rule
-namespace { auto const& css_color = color_grammar(); }
+namespace { using css_color_grammar::css_color; }
 
-// starting rule
-image_filter_grammar_type const start("start");
 // rules
 x3::rule<class filter_class, filter::filter_type > const filter("filter");
 
@@ -222,7 +221,8 @@ auto const colorize_alpha_filter_def = lit("colorize-alpha")
 auto const color_to_alpha_filter_def = lit("color-to-alpha") > lit('(')
     > -css_color > lit(')');
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 
 BOOST_SPIRIT_DEFINE(
@@ -247,15 +247,9 @@ BOOST_SPIRIT_DEFINE(
     offset,
     color_to_alpha_filter
     );
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 } // image_filter
-
-image_filter::image_filter_grammar_type const& image_filter_grammar()
-{
-    return image_filter::start;
-}
-
 } //ns mapnik
 
 #endif //MAPNIK_IMAGE_FILTER_GRAMMAR_X3_DEF_HPP

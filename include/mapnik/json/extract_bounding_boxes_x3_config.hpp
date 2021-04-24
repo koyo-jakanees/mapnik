@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,10 +26,11 @@
 #include <mapnik/json/json_grammar_config.hpp>
 #include <mapnik/geometry/box2d.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 //auto feature_collection_impl = x3::with<mapnik::json::grammar::bracket_tag>(std::ref(bracket_counter))
 // [x3::with<mapnik::json::grammar::keys_tag>(std::ref(keys))
@@ -59,7 +60,6 @@ struct extract_positions
             auto offset = std::distance(start_, r.begin());
             auto size = std::distance(r.begin(), r.end());
             boxes_.emplace_back(std::make_pair(box_type(b.minx(), b.miny(), b.maxx(), b.maxy()), std::make_pair(offset, size)));
-            //boxes_.emplace_back(std::make_tuple(bbox,offset, size));
         }
     }
     Iterator start_;
@@ -67,13 +67,24 @@ struct extract_positions
 };
 
 using box_type = mapnik::box2d<double>;
-using boxes_type = std::vector<std::pair<box_type, std::pair<std::size_t, std::size_t>>>;
-using callback_type = extract_positions<grammar::iterator_type, boxes_type>;
+using boxes_type = std::vector<std::pair<box_type, std::pair<std::uint64_t, std::uint64_t>>>;
+
 
 using box_type_f = mapnik::box2d<float>;
-using boxes_type_f = std::vector<std::pair<box_type_f, std::pair<std::size_t, std::size_t>>>;
-using callback_type_f = extract_positions<grammar::iterator_type, boxes_type_f>;
+using boxes_type_f = std::vector<std::pair<box_type_f, std::pair<std::uint64_t, std::uint64_t>>>;
 
+
+#if BOOST_VERSION >= 106700
+using size_type = std::size_t;
+using keys_map_type = keys_map;
+using callback_type = extract_positions<grammar::iterator_type, boxes_type>;
+using callback_type_f = extract_positions<grammar::iterator_type, boxes_type_f>;
+#else
+using size_type = std::reference_wrapper<std::size_t> const;
+using keys_map_type = std::reference_wrapper<keys_map> const;
+using callback_type = std::reference_wrapper<extract_positions<grammar::iterator_type, boxes_type>> const;
+using callback_type_f = std::reference_wrapper<extract_positions<grammar::iterator_type, boxes_type_f>> const;
+#endif
 
 namespace grammar {
 
@@ -82,35 +93,31 @@ struct feature_callback_tag;
 
 namespace x3 = boost::spirit::x3;
 using space_type = x3::standard::space_type;
-//using iterator_type = char const*;
 
 using phrase_parse_context_type = x3::phrase_parse_context<space_type>::type;
 
-using context_type = x3::with_context<keys_tag, std::reference_wrapper<keys_map> const,
-                                      phrase_parse_context_type>::type;
-
 using extract_bounding_boxes_context_type =
-    x3::with_context<bracket_tag, std::reference_wrapper<std::size_t> const,
-                     x3::with_context<feature_callback_tag, std::reference_wrapper<callback_type> const,
-                                      context_type>::type>::type;
+    x3::context<bracket_tag, size_type,
+                x3::context<feature_callback_tag, callback_type,
+                            context_type>>;
 
 using extract_bounding_boxes_reverse_context_type =
-    x3::with_context<keys_tag, std::reference_wrapper<keys_map> const,
-                     x3::with_context<feature_callback_tag, std::reference_wrapper<callback_type> const,
-                                      x3::with_context<bracket_tag, std::reference_wrapper<std::size_t> const,
-                                                       phrase_parse_context_type>::type>::type>::type;
+    x3::context<keys_tag, keys_map_type,
+                x3::context<feature_callback_tag, callback_type,
+                            x3::context<bracket_tag, size_type,
+                                        phrase_parse_context_type>>>;
 
 
 using extract_bounding_boxes_context_type_f =
-    x3::with_context<bracket_tag, std::reference_wrapper<std::size_t> const,
-                     x3::with_context<feature_callback_tag, std::reference_wrapper<callback_type_f> const,
-                                      context_type>::type>::type;
+    x3::context<bracket_tag, size_type,
+                x3::context<feature_callback_tag, callback_type_f,
+                            context_type>>;
 
 using extract_bounding_boxes_reverse_context_type_f =
-    x3::with_context<keys_tag, std::reference_wrapper<keys_map> const,
-                     x3::with_context<feature_callback_tag, std::reference_wrapper<callback_type_f> const,
-                                      x3::with_context<bracket_tag, std::reference_wrapper<std::size_t> const,
-                                                       phrase_parse_context_type>::type>::type>::type;
+    x3::context<keys_tag, keys_map_type,
+                x3::context<feature_callback_tag, callback_type_f,
+                            x3::context<bracket_tag, size_type,
+                                        phrase_parse_context_type>>>;
 
 }}}
 

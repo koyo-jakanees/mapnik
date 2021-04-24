@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -57,6 +57,7 @@ private:
     result_list test_one(path_type const & style_path,
                          report_type & report,
                          std::atomic<std::size_t> & fail_limit) const;
+    void parse_params(mapnik::parameters const & params, config & cfg) const;
 
     const path_type styles_dir_;
     const config defaults_;

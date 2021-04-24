@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,6 +37,12 @@ using mapnik::query;
 
 namespace mapnik { namespace util {
 
+struct index_record
+{
+    std::uint64_t off;
+    std::uint64_t size;
+    box2d<float> box;
+};
 
 template <typename InputStream>
 bool check_spatial_index(InputStream& in)

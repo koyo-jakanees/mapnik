@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@ namespace mapnik { namespace json { namespace grammar {
 
 namespace x3 = boost::spirit::x3;
 
+namespace {
+
 auto make_null = [] (auto const& ctx)
 {
     _val(ctx) = mapnik::value_null{};
@@ -48,26 +50,27 @@ auto make_false = [] (auto const& ctx)
 
 auto assign = [](auto const& ctx)
 {
-    _val(ctx) = _attr(ctx);
+    _val(ctx) = std::move(_attr(ctx));
 };
 
 auto assign_key = [](auto const& ctx)
 {
-    std::get<0>(_val(ctx)) = _attr(ctx);
+    std::get<0>(_val(ctx)) = std::move(_attr(ctx));
 };
 
 auto assign_value = [](auto const& ctx)
 {
-    std::get<1>(_val(ctx)) = _attr(ctx);
+    std::get<1>(_val(ctx)) = std::move(_attr(ctx));
 };
 
+} // VS2017
 
 using x3::lit;
 using x3::string;
-// exported rules
-// start
-generic_json_grammar_type const value("JSON Value");
-generic_json_key_value_type const key_value("JSON Object element");
+
+// import unicode string rule
+namespace { auto const& json_string = mapnik::json::grammar::unicode_string; }
+
 // rules
 x3::rule<class json_object_tag, json_object> const object("JSON Object");
 x3::rule<class json_array_tag, json_array> const array("JSON Array");
@@ -76,9 +79,7 @@ x3::rule<class json_number_tag, json_value> const number("JSON Number");
 auto const json_double = x3::real_parser<value_double, x3::strict_real_policies<value_double>>();
 auto const json_integer = x3::int_parser<value_integer, 10, 1, -1>();
 
-// import unicode string rule
-namespace { auto const& json_string = mapnik::json::unicode_string_grammar(); }
- // generic json types
+// generic json types
 auto const value_def = object | array | json_string | number
     ;
 
@@ -102,7 +103,8 @@ auto const number_def = json_double[assign]
     | lit("null")[make_null]
     ;
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 
 BOOST_SPIRIT_DEFINE(
@@ -113,21 +115,9 @@ BOOST_SPIRIT_DEFINE(
     number
     );
 
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 }}}
 
-namespace mapnik { namespace json {
-
-grammar::generic_json_grammar_type const& generic_json_grammar()
-{
-    return grammar::value;
-}
-grammar::generic_json_key_value_type const& generic_json_key_value()
-{
-    return grammar::key_value;
-}
-
-}}
 
 #endif // MAPNIK_JSON_GENERIC_JSON_GRAMMAR_X3_DEF_HPP

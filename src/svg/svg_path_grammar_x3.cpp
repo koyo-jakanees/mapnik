@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,17 +21,16 @@
  *****************************************************************************/
 
 #include <mapnik/svg/svg_path_grammar_x3_def.hpp>
+#include <mapnik/boost_spirit_instantiate.hpp>
 
 namespace mapnik { namespace svg { namespace grammar {
 
-#define BOOST_SPIRIT_INSTANTIATE_UNUSED(rule_type, Iterator, Context)   \
-    template bool parse_rule<Iterator, Context, boost::spirit::x3::unused_type const>( \
-        rule_type rule_                                                 \
-        , Iterator& first, Iterator const& last                         \
-        , Context const& context, boost::spirit::x3::unused_type const& ); \
-    /***/
-
+#if BOOST_VERSION >= 107000
+BOOST_SPIRIT_INSTANTIATE(svg_path_grammar_type, iterator_type, svg_parse_context_type);
+BOOST_SPIRIT_INSTANTIATE(svg_points_grammar_type, iterator_type, svg_parse_context_type);
+#else
 BOOST_SPIRIT_INSTANTIATE_UNUSED(svg_path_grammar_type, iterator_type, svg_parse_context_type);
 BOOST_SPIRIT_INSTANTIATE_UNUSED(svg_points_grammar_type, iterator_type, svg_parse_context_type);
+#endif
 
 }}}

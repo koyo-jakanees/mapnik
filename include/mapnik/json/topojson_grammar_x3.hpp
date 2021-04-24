@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,10 +26,11 @@
 // mapnik
 #include <mapnik/json/topology.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik { namespace json { namespace grammar {
 
@@ -37,12 +38,10 @@ namespace x3 = boost::spirit::x3;
 
 using topojson_grammar_type = x3::rule<class topojson_rule_tag, topojson::topology>;
 
+topojson_grammar_type const topology = "Topology";
+
 BOOST_SPIRIT_DECLARE(topojson_grammar_type);
 
-}
-
-grammar::topojson_grammar_type const& topojson_grammar();
-
-}}
+}}}
 
 #endif //MAPNIK_TOPOJSON_GRAMMAR_X3_HPP

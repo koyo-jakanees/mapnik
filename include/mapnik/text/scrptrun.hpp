@@ -17,12 +17,15 @@
 #ifndef __SCRPTRUN_H
 #define __SCRPTRUN_H
 
-#pragma GCC diagnostic push
+#include <mapnik/config.hpp>
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <unicode/utypes.h>
 #include <unicode/uobject.h>
 #include <unicode/uscript.h>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
+#include <vector>
 
 struct ScriptRecord
 {
@@ -33,11 +36,13 @@ struct ScriptRecord
 
 struct ParenStackEntry
 {
+    ParenStackEntry(int32_t pairIndex_, UScriptCode scriptCode_)
+        : pairIndex(pairIndex_), scriptCode(scriptCode_) {}
     int32_t pairIndex = 0;
     UScriptCode scriptCode = USCRIPT_INVALID_CODE;
 };
 
-class ScriptRun : public UObject {
+class MAPNIK_DECL ScriptRun : public icu::UObject {
 public:
     ScriptRun();
 
@@ -85,7 +90,7 @@ private:
     int32_t scriptEnd;
     UScriptCode scriptCode;
 
-    ParenStackEntry parenStack[128];
+    std::vector<ParenStackEntry> parenStack;
     int32_t parenSP;
 
     static int8_t highBit(int32_t value);
@@ -101,20 +106,25 @@ private:
      * for ICU "poor man's RTTI".
      */
     static const char fgClassID;
+    //initial stack size
+    const unsigned int STACK_SIZE = 1 << 4; // 2^n
 };
 
 inline ScriptRun::ScriptRun()
 {
+    parenStack.reserve(STACK_SIZE);
     reset(nullptr, 0, 0);
 }
 
 inline ScriptRun::ScriptRun(const UChar chars[], int32_t length)
 {
+    parenStack.reserve(STACK_SIZE);
     reset(chars, 0, length);
 }
 
 inline ScriptRun::ScriptRun(const UChar chars[], int32_t start, int32_t length)
 {
+    parenStack.reserve(STACK_SIZE);
     reset(chars, start, length);
 }
 

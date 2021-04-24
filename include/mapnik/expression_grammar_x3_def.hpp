@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,13 +29,14 @@
 #include <mapnik/function_call.hpp>
 #include <mapnik/unicode.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/std_pair.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 BOOST_FUSION_ADAPT_STRUCT(mapnik::unary_function_call,
                           (mapnik::unary_function_impl, fun)
@@ -70,6 +71,12 @@ namespace mapnik { namespace grammar {
     auto const& escaped_unicode = json::grammar::escaped_unicode;
     }
 
+    template <typename Context>
+    inline mapnik::transcoder const& extract_transcoder(Context const& ctx)
+    {
+        return x3::get<transcoder_tag>(ctx);
+    }
+
     auto append = [](auto const& ctx)
     {
         _val(ctx) += _attr(ctx);
@@ -87,7 +94,7 @@ namespace mapnik { namespace grammar {
 
     auto do_attribute = [] (auto const& ctx)
     {
-        auto & attr = _attr(ctx);
+        auto const& attr = _attr(ctx);
         if (attr == "mapnik::geometry_type")
         {
             _val(ctx) = std::move(geometry_type_attribute());
@@ -130,7 +137,7 @@ namespace mapnik { namespace grammar {
 
     auto do_unicode = [] (auto const& ctx)
     {
-        auto & tr = x3::get<transcoder_tag>(ctx).get();
+        auto const& tr = extract_transcoder(ctx);
         _val(ctx) = std::move(tr.transcode(_attr(ctx).c_str()));
     };
 
@@ -188,13 +195,13 @@ namespace mapnik { namespace grammar {
 // regex
     auto do_regex_match = [] (auto const& ctx)
     {
-        auto const& tr = x3::get<transcoder_tag>(ctx).get();
+        auto const& tr = extract_transcoder(ctx);
         _val(ctx) = std::move(mapnik::regex_match_node(tr, std::move(_val(ctx)) , std::move(_attr(ctx))));
     };
 
     auto do_regex_replace = [] (auto const& ctx)
     {
-        auto const& tr = x3::get<transcoder_tag>(ctx).get();
+        auto const& tr = extract_transcoder(ctx);
         auto const& pair = _attr(ctx);
         auto const& pattern = std::get<0>(pair);
         auto const& format = std::get<1>(pair);
@@ -294,8 +301,7 @@ namespace mapnik { namespace grammar {
                 ;
         }
     } unesc_char;
-    // starting rule
-    expression_grammar_type const expression("expression");
+
     // rules
     x3::rule<class logical_expression, mapnik::expr_node> const logical_expression("logical expression");
     x3::rule<class not_expression, mapnik::expr_node> const not_expression("not expression");
@@ -315,14 +321,14 @@ namespace mapnik { namespace grammar {
     auto const single_quoted_string = x3::rule<class single_quoted_string, std::string> {} = lit('\'')
         >> no_skip[*(unesc_char[append]
                      |
-                     //(lit('\\') > escaped_unicode[append]) // FIXME (!)
-                     //|
+                     (lit('\\') >> escaped_unicode[append])
+                     |
                      (~char_('\''))[append])] > lit('\'');
 
     auto const double_quoted_string = x3::rule<class double_quoted_string, std::string> {} = lit('"')
         >> no_skip[*(unesc_char[append]
                      |
-                     (lit('\\') > escaped_unicode[append])
+                     (lit('\\') >> escaped_unicode[append])
                      |
                      (~char_('"'))[append])] > lit('"');
 
@@ -444,13 +450,5 @@ namespace mapnik { namespace grammar {
         );
 
     }}
-
-namespace mapnik
-{
-grammar::expression_grammar_type const& expression_grammar()
-{
-    return grammar::expression;
-}
-}
 
 #endif  // MAPNIK_EXPRESSIONS_GRAMMAR_X3_DEF_HPP

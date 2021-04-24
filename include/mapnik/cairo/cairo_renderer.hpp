@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -171,7 +171,6 @@ public:
                        agg::trans_affine const& mtx,
                        double opacity=1.0,
                        bool recenter=true);
-    void render_box(box2d<double> const& b);
 protected:
     Map const& m_;
     cairo_context context_;

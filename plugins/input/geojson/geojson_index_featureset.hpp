@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,13 +26,15 @@
 #include "geojson_datasource.hpp"
 #include <mapnik/feature.hpp>
 #include <mapnik/geom_util.hpp>
+#include <mapnik/util/spatial_index.hpp>
 
 #if defined(MAPNIK_MEMORY_MAPPED_FILE)
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 #include <mapnik/mapped_memory_cache.hpp>
 #endif
 
@@ -41,9 +43,9 @@
 
 class geojson_index_featureset : public mapnik::Featureset
 {
-    using value_type = std::pair<std::size_t, std::size_t>;
+    using value_type = mapnik::util::index_record;
 public:
-    geojson_index_featureset(std::string const& filename, mapnik::filter_in_box const& filter);
+    geojson_index_featureset(std::string const& filename, mapnik::bounding_box_filter<float> const& filter);
     virtual ~geojson_index_featureset();
     mapnik::feature_ptr next();
 

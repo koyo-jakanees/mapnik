@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,15 +36,16 @@
 #include <list>
 #include <type_traits>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <harfbuzz/hb.h>
 #include <harfbuzz/hb-ft.h>
+#include <unicode/uvernum.h>
 #include <unicode/uscript.h>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
-namespace mapnik
-{
+namespace mapnik { namespace detail {
 
 static inline hb_script_t _icu_script_to_script(UScriptCode script)
 {
@@ -55,12 +56,80 @@ static inline hb_script_t _icu_script_to_script(UScriptCode script)
 static inline const uint16_t * uchar_to_utf16(const UChar* src)
 {
    static_assert(sizeof(UChar) == sizeof(uint16_t),"UChar is eq size to uint16_t");
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (U_ICU_VERSION_MAJOR_NUM >= 59)
+   // ^^ http://site.icu-project.org/download/59#TOC-ICU4C-char16_t1
    return reinterpret_cast<const uint16_t *>(src);
 #else
    return src;
 #endif
 }
+
+static hb_language_t script_to_language(hb_script_t script)
+{
+    switch (script)
+    {
+    // Unicode 1.1
+    case HB_SCRIPT_ARABIC: return hb_language_from_string("ar", -1); break;
+    case HB_SCRIPT_ARMENIAN: return hb_language_from_string("hy", -1); break;
+    case HB_SCRIPT_BENGALI: return hb_language_from_string("bn", -1); break;
+    case HB_SCRIPT_CANADIAN_ABORIGINAL: return hb_language_from_string("iu", -1); break;
+    case HB_SCRIPT_CHEROKEE: return hb_language_from_string("chr", -1); break;
+    case HB_SCRIPT_COPTIC: return hb_language_from_string("cop", -1); break;
+    case HB_SCRIPT_CYRILLIC: return hb_language_from_string("ru", -1); break;
+    case HB_SCRIPT_DEVANAGARI: return hb_language_from_string("hi", -1); break;
+    case HB_SCRIPT_GEORGIAN: return hb_language_from_string("ka", -1); break;
+    case HB_SCRIPT_GREEK: return hb_language_from_string("el", -1); break;
+    case HB_SCRIPT_GUJARATI: return hb_language_from_string("gu", -1); break;
+    case HB_SCRIPT_GURMUKHI: return hb_language_from_string("pa", -1); break;
+    case HB_SCRIPT_HANGUL: return hb_language_from_string("ko", -1); break;
+    case HB_SCRIPT_HAN: return hb_language_from_string("zh-hans", -1); break;
+    case HB_SCRIPT_HEBREW: return hb_language_from_string("he", -1); break;
+    case HB_SCRIPT_HIRAGANA: return hb_language_from_string("ja", -1); break;
+    case HB_SCRIPT_KANNADA: return hb_language_from_string("kn", -1); break;
+    case HB_SCRIPT_KATAKANA: return hb_language_from_string("ja", -1); break;
+    case HB_SCRIPT_LAO: return hb_language_from_string("lo", -1); break;
+    case HB_SCRIPT_LATIN: return hb_language_from_string("en", -1); break;
+    case HB_SCRIPT_MALAYALAM: return hb_language_from_string("ml", -1); break;
+    case HB_SCRIPT_MONGOLIAN: return hb_language_from_string("mn", -1); break;
+    case HB_SCRIPT_ORIYA: return hb_language_from_string("or", -1); break;
+    case HB_SCRIPT_SYRIAC: return hb_language_from_string("syr", -1); break;
+    case HB_SCRIPT_TAMIL: return hb_language_from_string("ta", -1); break;
+    case HB_SCRIPT_TELUGU: return hb_language_from_string("te", -1); break;
+    case HB_SCRIPT_THAI: return hb_language_from_string("th", -1); break;
+
+    // Unicode 2.0
+    case HB_SCRIPT_TIBETAN: return hb_language_from_string("bo", -1); break;
+
+    // Unicode 3.0
+    case HB_SCRIPT_ETHIOPIC: return hb_language_from_string("am", -1); break;
+    case HB_SCRIPT_KHMER: return hb_language_from_string("km", -1); break;
+    case HB_SCRIPT_MYANMAR: return hb_language_from_string("my", -1); break;
+    case HB_SCRIPT_SINHALA: return hb_language_from_string("si", -1); break;
+    case HB_SCRIPT_THAANA: return hb_language_from_string("dv", -1); break;
+
+    // Unicode 3.2
+    case HB_SCRIPT_BUHID: return hb_language_from_string("bku", -1); break;
+    case HB_SCRIPT_HANUNOO: return hb_language_from_string("hnn", -1); break;
+    case HB_SCRIPT_TAGALOG: return hb_language_from_string("tl", -1); break;
+    case HB_SCRIPT_TAGBANWA: return hb_language_from_string("tbw", -1); break;
+
+    // Unicode 4.0
+    case HB_SCRIPT_UGARITIC: return hb_language_from_string("uga", -1); break;
+
+    // Unicode 4.1
+    case HB_SCRIPT_BUGINESE: return hb_language_from_string("bug", -1); break;
+    case HB_SCRIPT_OLD_PERSIAN: return hb_language_from_string("peo", -1); break;
+    case HB_SCRIPT_SYLOTI_NAGRI: return hb_language_from_string("syl", -1); break;
+
+    // Unicode 5.0
+    case HB_SCRIPT_NKO: return hb_language_from_string("nko", -1); break;
+
+    // no representative language exists
+    default: return HB_LANGUAGE_INVALID; break;
+    }
+}
+
+} // ns detail
 
 struct harfbuzz_shaper
 {
@@ -111,10 +180,22 @@ static void shape_text(text_line & line,
         {
             ++pos;
             hb_buffer_clear_contents(buffer.get());
-            hb_buffer_add_utf16(buffer.get(), uchar_to_utf16(text.getBuffer()), text.length(), text_item.start, static_cast<int>(text_item.end - text_item.start));
+            hb_buffer_add_utf16(buffer.get(), detail::uchar_to_utf16(text.getBuffer()), text.length(), text_item.start, static_cast<int>(text_item.end - text_item.start));
             hb_buffer_set_direction(buffer.get(), (text_item.dir == UBIDI_RTL) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-            hb_buffer_set_script(buffer.get(), _icu_script_to_script(text_item.script));
+
             hb_font_t *font(hb_ft_font_create(face->get_face(), nullptr));
+            auto script = detail::_icu_script_to_script(text_item.script);
+            auto language = detail::script_to_language(script);
+            MAPNIK_LOG_DEBUG(harfbuzz_shaper) << "RUN:[" << text_item.start << "," << text_item.end << "]"
+                                              << " LANGUAGE:" << ((language != nullptr) ? hb_language_to_string(language) : "unknown")
+                                              << " SCRIPT:" << script << "(" << text_item.script << ") " << uscript_getShortName(text_item.script)
+                                              << " FONT:" << face->family_name();
+            if (language != HB_LANGUAGE_INVALID)
+            {
+                hb_buffer_set_language(buffer.get(), language); // set most common language for the run based script
+            }
+            hb_buffer_set_script(buffer.get(), script);
+
             // https://github.com/mapnik/test-data-visual/pull/25
 #if HB_VERSION_MAJOR > 0
 #if HB_VERSION_ATLEAST(1, 0 , 5)
@@ -204,7 +285,7 @@ static void shape_text(text_line & line,
                         double tmp_height = g.height();
                         if (g.face->is_color())
                         {
-                            tmp_height = size;
+                            tmp_height = g.ymax();
                         }
                         if (tmp_height > max_glyph_height) max_glyph_height = tmp_height;
                         width_map[char_index] += g.advance();

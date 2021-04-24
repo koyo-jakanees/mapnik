@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,20 +23,21 @@
 #ifndef MAPNIK_CSV_GRAMMAR_X3_DEF_HPP
 #define MAPNIK_CSV_GRAMMAR_X3_DEF_HPP
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <mapnik/csv/csv_grammar_x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 
 namespace mapnik { namespace grammar {
 
 namespace x3 = boost::spirit::x3;
-namespace ascii = boost::spirit::x3::ascii;
+namespace standard = boost::spirit::x3::standard;
 
 using x3::lit;
 using x3::lexeme;
-using ascii::char_;
+using standard::char_;
 
 struct unesc_char_ : x3::symbols<char>
 {
@@ -81,12 +82,10 @@ struct literal : x3::parser<literal<T>>
 auto static const separator = literal<separator_tag>{};
 auto static const quote = literal<quote_tag>{};
 
-// starting rule
-csv_line_grammar_type const line("csv-line");
 // rules
-x3::rule<class csv_column, csv_value> column("csv-column");
-x3::rule<class csv_text, csv_value> text("csv-text");
-x3::rule<class csc_quoted_text, csv_value> quoted_text("csv-quoted-text");
+x3::rule<class csv_column, csv_value> const column("csv-column");
+x3::rule<class csv_text, csv_value> const text("csv-text");
+x3::rule<class csc_quoted_text, csv_value> const quoted_text("csv-quoted-text");
 
 auto const line_def = -lit('\r') > -lit('\n') > lexeme[column] % separator
     ;
@@ -108,12 +107,6 @@ BOOST_SPIRIT_DEFINE (
     );
 
 } // grammar
-
-grammar::csv_line_grammar_type const& csv_line_grammar()
-{
-    return grammar::line;
-}
-
 } // namespace mapnik
 
 

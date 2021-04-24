@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,8 +31,9 @@
 #include <mapnik/geometry.hpp>
 #include <mapnik/geometry/geometry_type.hpp>
 #include <mapnik/geometry/centroid.hpp>
+#include <mapnik/geometry/interior.hpp>
+#include <mapnik/geometry/polylabel.hpp>
 #include <mapnik/vertex_processor.hpp>
-#include <mapnik/geom_util.hpp>
 #include <mapnik/parse_path.hpp>
 #include <mapnik/debug.hpp>
 #include <mapnik/symbolizer.hpp>
@@ -40,6 +41,11 @@
 #include <mapnik/text/placement_finder_impl.hpp>
 #include <mapnik/text/placements/base.hpp>
 #include <mapnik/text/placements/dummy.hpp>
+#include <mapnik/geometry/transform.hpp>
+#include <mapnik/geometry/strategy.hpp>
+#include <mapnik/grid_vertex_converter.hpp>
+#include <mapnik/proj_strategy.hpp>
+#include <mapnik/view_strategy.hpp>
 
 namespace mapnik {
 namespace geometry {
@@ -101,6 +107,31 @@ struct apply_vertex_placement
     Points & points_;
     view_transform const& tr_;
     proj_transform const& prj_trans_;
+};
+
+template <template <typename, typename> class GridAdapter, typename T, typename Points>
+struct grid_placement_finder_adapter
+{
+    grid_placement_finder_adapter(T dx, T dy, Points & points, double scale_factor)
+        : dx_(dx), dy_(dy),
+          points_(points),
+          scale_factor_(scale_factor) {}
+
+    template <typename PathT>
+    void add_path(PathT & path) const
+    {
+        GridAdapter<PathT, T> gpa(path, dx_, dy_, scale_factor_);
+        gpa.rewind(0);
+        double label_x, label_y;
+        for (unsigned cmd; (cmd = gpa.vertex(&label_x, &label_y)) != SEG_END; )
+        {
+            points_.emplace_back(label_x, label_y);
+        }
+    }
+
+    T dx_, dy_;
+    Points & points_;
+    double scale_factor_;
 };
 
 template <typename T>
@@ -239,14 +270,20 @@ void base_symbolizer_helper::initialize_geometries() const
 void base_symbolizer_helper::initialize_points() const
 {
     label_placement_enum how_placed = text_props_->label_placement;
-    if (how_placed == LINE_PLACEMENT)
+
+    switch (how_placed)
     {
-        point_placement_ = false;
-        return;
-    }
-    else
-    {
-        point_placement_ = true;
+        case LINE_PLACEMENT:
+            point_placement_ = false;
+            return;
+        case GRID_PLACEMENT:
+        case ALTERNATING_GRID_PLACEMENT:
+            point_placement_ = true;
+            // Points for grid placement are generated in text_symbolizer_helper
+            // because base_symbolizer_helper doesn't have the vertex converter.
+            return;
+        default:
+            point_placement_ = true;
     }
 
     double label_x=0.0;
@@ -286,11 +323,32 @@ void base_symbolizer_helper::initialize_points() const
                     success = true;
                 }
             }
-            else if (how_placed == INTERIOR_PLACEMENT && type == geometry::geometry_types::Polygon)
+            else if (type == geometry::geometry_types::Polygon)
             {
-                auto const& poly = mapnik::util::get<geometry::polygon<double> >(geom);
-                geometry::polygon_vertex_adapter<double> va(poly);
-                success = label::interior_position(va, label_x, label_y);
+                auto const& poly = util::get<geometry::polygon<double>>(geom);
+                view_strategy vs(t_);
+                proj_backward_strategy ps(prj_trans_);
+                using transform_group_type = geometry::strategy_group<proj_backward_strategy, view_strategy>;
+                transform_group_type transform_group(ps, vs);
+                geometry::polygon<double> tranformed_poly(geometry::transform<double>(poly, transform_group));
+                if (how_placed == INTERIOR_PLACEMENT)
+                {
+                    geometry::point<double> pt;
+                    if (geometry::interior(tranformed_poly, scale_factor_, pt))
+                    {
+                        points_.emplace_back(pt.x, pt.y);
+                    }
+                }
+                else if (how_placed == POLYLABEL_PLACEMENT)
+                {
+                    double precision = geometry::polylabel_precision(tranformed_poly, scale_factor_);
+                    geometry::point<double> pt;
+                    if (geometry::polylabel(tranformed_poly, precision, pt))
+                    {
+                        points_.emplace_back(pt.x, pt.y);
+                    }
+                }
+                continue;
             }
             else
             {
@@ -322,21 +380,42 @@ text_symbolizer_helper::text_symbolizer_helper(
     adapter_(finder_,false),
     converter_(query_extent_, sym_, t, prj_trans, affine_trans, feature, vars, scale_factor)
 {
+    init_converters();
 
+    if (geometries_to_process_.size())
+    {
+        text_symbolizer_helper::initialize_points();
+        finder_.next_position();
+    }
+}
+
+void text_symbolizer_helper::init_converters()
+{
     // setup vertex converter
     value_bool clip = mapnik::get<value_bool, keys::clip>(sym_, feature_, vars_);
     value_double simplify_tolerance = mapnik::get<value_double, keys::simplify_tolerance>(sym_, feature_, vars_);
     value_double smooth = mapnik::get<value_double, keys::smooth>(sym_, feature_, vars_);
     value_double extend = mapnik::get<value_double, keys::extend>(sym_, feature_, vars_);
+    boost::optional<value_double> offset = get_optional<value_double>(sym_, keys::offset, feature_, vars_);
 
-    if (clip) converter_.template set<clip_line_tag>();
+    if (clip)
+    {
+        label_placement_enum how_placed = text_props_->label_placement;
+        if (how_placed == GRID_PLACEMENT || how_placed == ALTERNATING_GRID_PLACEMENT)
+        {
+            converter_.template set<clip_poly_tag>();
+        }
+        else
+        {
+            converter_.template set<clip_line_tag>();
+        }
+    }
     converter_.template set<transform_tag>(); //always transform
     converter_.template set<affine_transform_tag>();
     if (extend > 0.0) converter_.template set<extend_tag>();
     if (simplify_tolerance > 0.0) converter_.template set<simplify_tag>(); // optional simplify converter
     if (smooth > 0.0) converter_.template set<smooth_tag>(); // optional smooth converter
-
-    if (geometries_to_process_.size()) finder_.next_position();
+    if (offset) converter_.template set<offset_transform_tag>(); // optional offset converter
 }
 
 placements_list const& text_symbolizer_helper::get() const
@@ -450,21 +529,11 @@ text_symbolizer_helper::text_symbolizer_helper(
       adapter_(finder_,true),
       converter_(query_extent_, sym_, t, prj_trans, affine_trans, feature, vars, scale_factor)
 {
-   // setup vertex converter
-    value_bool clip = mapnik::get<value_bool, keys::clip>(sym_, feature_, vars_);
-    value_double simplify_tolerance = mapnik::get<value_double, keys::simplify_tolerance>(sym_, feature_, vars_);
-    value_double smooth = mapnik::get<value_double, keys::smooth>(sym_, feature_, vars_);
-    value_double extend = mapnik::get<value_double, keys::extend>(sym_, feature_, vars_);
-
-    if (clip) converter_.template set<clip_line_tag>();
-    converter_.template set<transform_tag>(); //always transform
-    converter_.template set<affine_transform_tag>();
-    if (extend > 0.0) converter_.template set<extend_tag>();
-    if (simplify_tolerance > 0.0) converter_.template set<simplify_tag>(); // optional simplify converter
-    if (smooth > 0.0) converter_.template set<smooth_tag>(); // optional smooth converter
+    init_converters();
 
     if (geometries_to_process_.size())
     {
+        text_symbolizer_helper::initialize_points();
         init_marker();
         finder_.next_position();
     }
@@ -503,6 +572,44 @@ void text_symbolizer_helper::init_marker() const
     pixel_position marker_displacement;
     marker_displacement.set(shield_dx,shield_dy);
     finder_.set_marker(std::make_shared<marker_info>(marker, trans), bbox, unlock_image, marker_displacement);
+}
+
+template <template <typename, typename> class GridAdapter>
+void text_symbolizer_helper::initialize_grid_points() const
+{
+    for (auto const& geom : geometries_to_process_)
+    {
+        auto type = geometry::geometry_type(geom);
+        if (type != geometry::geometry_types::Polygon)
+        {
+            continue;
+        }
+
+        using adapter_type = detail::grid_placement_finder_adapter<
+            GridAdapter, double, std::list<pixel_position>>;
+        adapter_type ga(text_props_->grid_cell_width,
+                        text_props_->grid_cell_height,
+                        points_,
+                        scale_factor_);
+        auto const& poly = mapnik::util::get<geometry::polygon<double>>(geom);
+        geometry::polygon_vertex_adapter<double> va(poly);
+        converter_.apply(va, ga);
+    }
+}
+
+void text_symbolizer_helper::initialize_points() const
+{
+    label_placement_enum how_placed = text_props_->label_placement;
+
+    if (how_placed == GRID_PLACEMENT)
+    {
+        initialize_grid_points<geometry::regular_grid_vertex_converter>();
+    }
+    else if (how_placed == ALTERNATING_GRID_PLACEMENT)
+    {
+        initialize_grid_points<geometry::alternating_grid_vertex_converter>();
+    }
+    point_itr_ = points_.begin();
 }
 
 template text_symbolizer_helper::text_symbolizer_helper(

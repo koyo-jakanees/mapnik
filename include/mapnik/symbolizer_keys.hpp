@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,7 @@ enum class keys : std::uint8_t
     line_rasterizer,
     image_transform,
     spacing,
+    spacing_offset,
     max_error,
     allow_overlap,
     ignore_placement,
@@ -67,6 +68,7 @@ enum class keys : std::uint8_t
     mesh_size,
     premultiplied,
     smooth,
+    smooth_algorithm,
     simplify_algorithm,
     simplify_tolerance,
     halo_rasterizer,
@@ -93,6 +95,7 @@ enum class keys : std::uint8_t
     avoid_edges,
     ff_settings,
     extend,
+    line_pattern,
     MAX_SYMBOLIZER_KEY
 };
 

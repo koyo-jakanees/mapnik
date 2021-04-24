@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,12 +33,13 @@
 #include <mapnik/feature_layer_desc.hpp>
 #include <mapnik/unicode.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/optional.hpp>
 #include <boost/version.hpp>
 #include <boost/geometry/index/rtree.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <memory>
@@ -46,7 +47,7 @@
 #include <string>
 #include <map>
 #include <deque>
-
+#include <functional>
 
 template <std::size_t Max, std::size_t Min>
 struct geojson_linear : boost::geometry::index::linear<Max,Min> {};
@@ -75,9 +76,8 @@ class geojson_datasource : public mapnik::datasource
 {
 public:
     using box_type = mapnik::box2d<double>;
-    using item_type = std::pair<box_type, std::pair<std::size_t, std::size_t> >;
+    using item_type = std::pair<box_type, std::pair<std::uint64_t, std::uint64_t> >;
     using spatial_index_type = boost::geometry::index::rtree<item_type,geojson_linear<16,4> >;
-
     // constructor
     geojson_datasource(mapnik::parameters const& params);
     virtual ~geojson_datasource ();
@@ -106,6 +106,5 @@ private:
     bool has_disk_index_ = false;
     const std::size_t num_features_to_query_;
 };
-
 
 #endif // GEOJSON_DATASOURCE_HPP

@@ -1,12 +1,20 @@
-
 #include "agg_pixfmt_rgba.h"
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 106900
+#include <boost/gil.hpp>
+#include <boost/gil/extension/toolbox/color_spaces/hsv.hpp>
+#include <boost/gil/extension/toolbox/color_spaces/hsl.hpp>
+#else
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/toolbox/hsv.hpp>
 #include <boost/gil/extension/toolbox/hsl.hpp>
-#pragma GCC diagnostic pop
+#endif
+
+MAPNIK_DISABLE_WARNING_POP
 
 namespace agg
 {

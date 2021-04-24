@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,14 +24,14 @@
 #include <mapnik/color.hpp>
 #include <mapnik/color_factory.hpp>
 #include <mapnik/config_error.hpp>
-#include <mapnik/css_color_grammar_x3.hpp>
+#include <mapnik/css/css_color_grammar_x3.hpp>
 
 namespace mapnik {
 
 color parse_color(std::string const& str)
 {
     // TODO - early return for @color?
-    auto const& grammar = mapnik::color_grammar();
+    auto const& grammar = mapnik::css_color_grammar::css_color;
     color c;
     std::string::const_iterator first = str.begin();
     std::string::const_iterator last =  str.end();

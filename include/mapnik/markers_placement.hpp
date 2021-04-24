@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,8 +26,9 @@
 #include <mapnik/markers_placements/line.hpp>
 #include <mapnik/markers_placements/point.hpp>
 #include <mapnik/markers_placements/interior.hpp>
-#include <mapnik/markers_placements/vertext_first.hpp>
-#include <mapnik/markers_placements/vertext_last.hpp>
+#include <mapnik/markers_placements/vertex_first.hpp>
+#include <mapnik/markers_placements/vertex_last.hpp>
+#include <mapnik/markers_placements/polylabel.hpp>
 #include <mapnik/symbolizer_enumerations.hpp>
 
 namespace mapnik
@@ -43,11 +44,15 @@ public:
                              markers_placement_params const& params)
         : placement_type_(placement_type)
     {
-        switch (placement_type)
+        switch (marker_placement_enum(placement_type))
         {
         default:
         case MARKER_POINT_PLACEMENT:
             construct(&point_, locator, detector, params);
+            break;
+        case MARKER_ANGLED_POINT_PLACEMENT:
+            construct(&point_, locator, detector, params);
+            point_.use_angle(true);
             break;
         case MARKER_INTERIOR_PLACEMENT:
             construct(&interior_, locator, detector, params);
@@ -61,15 +66,19 @@ public:
         case MARKER_VERTEX_LAST_PLACEMENT:
             construct(&vertex_last_, locator, detector, params);
             break;
+        case MARKER_POLYLABEL_PLACEMENT:
+            construct(&polylabel_, locator, detector, params);
+            break;
         }
     }
 
     ~markers_placement_finder()
     {
-        switch (placement_type_)
+        switch (marker_placement_enum(placement_type_))
         {
         default:
         case MARKER_POINT_PLACEMENT:
+        case MARKER_ANGLED_POINT_PLACEMENT:
             destroy(&point_);
             break;
         case MARKER_INTERIOR_PLACEMENT:
@@ -84,16 +93,20 @@ public:
         case MARKER_VERTEX_LAST_PLACEMENT:
             destroy(&vertex_last_);
             break;
+        case MARKER_POLYLABEL_PLACEMENT:
+            destroy(&polylabel_);
+            break;
         }
     }
 
     // Get next point where the marker should be placed. Returns true if a place is found, false if none is found.
     bool get_point(double &x, double &y, double &angle, bool ignore_placement)
     {
-        switch (placement_type_)
+        switch (marker_placement_enum(placement_type_))
         {
         default:
         case MARKER_POINT_PLACEMENT:
+        case MARKER_ANGLED_POINT_PLACEMENT:
             return point_.get_point(x, y, angle, ignore_placement);
         case MARKER_INTERIOR_PLACEMENT:
             return interior_.get_point(x, y, angle, ignore_placement);
@@ -103,6 +116,8 @@ public:
             return vertex_first_.get_point(x, y, angle, ignore_placement);
         case MARKER_VERTEX_LAST_PLACEMENT:
             return vertex_last_.get_point(x, y, angle, ignore_placement);
+        case MARKER_POLYLABEL_PLACEMENT:
+            return polylabel_.get_point(x, y, angle, ignore_placement);
         }
     }
 
@@ -116,6 +131,7 @@ private:
         markers_interior_placement<Locator, Detector> interior_;
         markers_vertex_first_placement<Locator, Detector> vertex_first_;
         markers_vertex_last_placement<Locator, Detector> vertex_last_;
+        markers_polylabel_placement<Locator, Detector> polylabel_;
     };
 
     template <typename T>

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,12 +28,14 @@
 #include <mapnik/value.hpp>
 #include <mapnik/transform/transform_expression.hpp>
 #include <mapnik/expression_evaluator.hpp>
+#include <mapnik/util/math.hpp>
 #include <mapnik/util/variant.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include <agg_trans_affine.h>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <cmath>
@@ -145,7 +147,7 @@ struct transform_processor
 
         void operator() (rotate_node const& node) const
         {
-            double angle = deg2rad(eval(node.angle_));
+            double angle = agg::deg2rad(eval(node.angle_));
             double cx = eval(node.cx_, 0.0);
             double cy = eval(node.cy_, 0.0);
             transform_.translate(-cx, -cy);
@@ -156,27 +158,18 @@ struct transform_processor
         void operator() (skewX_node const& node) const
         {
             auto degrees = std::fmod(eval(node.angle_),90.0);
-            if (degrees < -89.0) degrees = -89.0;
-            else if (degrees > 89.0) degrees = 89.0;
-            auto angle = deg2rad(degrees);
+            auto angle = agg::deg2rad(util::clamp(degrees, -89.0, 89.0));
             transform_.multiply(agg::trans_affine_skewing(angle, 0.0));
         }
 
         void operator() (skewY_node const& node) const
         {
             auto degrees = std::fmod(eval(node.angle_),90.0);
-            if (degrees < -89.0) degrees = -89.0;
-            else if (degrees > 89.0) degrees = 89.0;
-            auto angle = deg2rad(degrees);
+            auto angle = agg::deg2rad(util::clamp(degrees, -89.0, 89.0));
             transform_.multiply(agg::trans_affine_skewing(0.0, angle));
         }
 
     private:
-
-        static double deg2rad(double d)
-        {
-            return d * M_PI / 180.0;
-        }
 
         double eval(expr_node const& x) const
         {

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -47,14 +47,15 @@
 #include <mapnik/group/group_symbolizer_properties.hpp>
 #include <mapnik/util/variant.hpp>
 #include <mapnik/util/variant_io.hpp>
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/optional.hpp>
 #include <boost/version.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <iostream>
@@ -542,12 +543,12 @@ void serialize_layer( ptree & map_node, layer const& lyr, bool explicit_defaults
 
     if ( lyr.minimum_scale_denominator() != 0 || explicit_defaults )
     {
-        set_attr( layer_node, "minimum_scale_denominator", lyr.minimum_scale_denominator() );
+        set_attr( layer_node, "minimum-scale-denominator", lyr.minimum_scale_denominator() );
     }
 
     if ( lyr.maximum_scale_denominator() != std::numeric_limits<double>::max() || explicit_defaults )
     {
-        set_attr( layer_node, "maximum_scale_denominator", lyr.maximum_scale_denominator() );
+        set_attr( layer_node, "maximum-scale-denominator", lyr.maximum_scale_denominator() );
     }
 
     if ( lyr.queryable() || explicit_defaults )

@@ -6,6 +6,7 @@ First clone mapnik from github and initialize submodules
 
 ```bash
 git clone https://github.com/mapnik/mapnik.git
+cd mapnik
 git submodule update --init
 ```
 
@@ -183,7 +184,7 @@ If you need help or want to participate starting points include:
 ### Cartographers
 
 TileMill, which uses Mapnik internally, offers great step by step tutorials for
-learning advanced map styling: http://mapbox.com/tilemill/docs/crashcourse/introduction/
+learning advanced map styling: https://tilemill-project.github.io/tilemill/docs/crashcourse/introduction/
 
 ### Programmers
 
@@ -191,6 +192,6 @@ Mapnik is great for building your own mapping applications. Visit
 https://github.com/mapnik/mapnik/wiki/LearningMapnik for basic
 tutorials on how to programmatically use Mapnik.
 
-### Contributers
+### Contributors
 
-Read docs/contributing.md for resources for getting involved with Mapnik development.
+Read [docs/contributing.md](docs/contributing.md) for resources for getting involved with Mapnik development.

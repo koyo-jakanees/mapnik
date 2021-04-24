@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,11 +27,12 @@
 #include <mapnik/transform/transform_expression_grammar_x3.hpp>
 #include <mapnik/expression_grammar_x3.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // skewX
 BOOST_FUSION_ADAPT_STRUCT(mapnik::skewX_node,
@@ -127,19 +128,17 @@ auto const construct_rotate = [](auto const& ctx)
     _val(ctx) = mapnik::rotate_node(a, sx, sy);
 };
 
-// starting rule
-transform_expression_grammar_type const transform("transform");
 // rules
-x3::rule<class transform_list_class, mapnik::transform_list> transform_list_rule("transform list");
-x3::rule<class transform_node_class, mapnik::transform_node> transform_node_rule("transform node");
-x3::rule<class matrix_node_class, mapnik::matrix_node> matrix("matrix node");
-x3::rule<class translate_node_class, mapnik::translate_node> translate("translate node");
-x3::rule<class scale_node_class, mapnik::scale_node> scale("scale node");
-x3::rule<class rotate_node_class, mapnik::rotate_node> rotate("rotate node");
-x3::rule<class skewX_node_class, mapnik::skewX_node> skewX("skew X node");
-x3::rule<class skewY_node_class, mapnik::skewY_node> skewY("skew Y node");
-x3::rule<class expr_tag, mapnik::expr_node> expr("Expression");
-x3::rule<class sep_expr_tag, mapnik::expr_node> sep_expr("Separated Expression");
+x3::rule<class transform_list_class, mapnik::transform_list> const transform_list_rule("transform list");
+x3::rule<class transform_node_class, mapnik::transform_node> const transform_node_rule("transform node");
+x3::rule<class matrix_node_class, mapnik::matrix_node> const matrix("matrix node");
+x3::rule<class translate_node_class, mapnik::translate_node> const translate("translate node");
+x3::rule<class scale_node_class, mapnik::scale_node> const scale("scale node");
+x3::rule<class rotate_node_class, mapnik::rotate_node> const rotate("rotate node");
+x3::rule<class skewX_node_class, mapnik::skewX_node> const skewX("skew X node");
+x3::rule<class skewY_node_class, mapnik::skewY_node> const skewY("skew Y node");
+x3::rule<class expr_tag, mapnik::expr_node> const expr("Expression");
+x3::rule<class sep_expr_tag, mapnik::expr_node> const sep_expr("Separated Expression");
 
 // start
 auto const transform_def = transform_list_rule;
@@ -155,7 +154,7 @@ auto const atom = x3::rule<class atom_tag, expr_node> {} = double_[create_expr_n
 auto const sep_atom = x3::rule<class sep_atom_tag, expr_node> {} = -lit(',') >> double_[create_expr_node]
     ;
 
-auto const expr_def = expression_grammar();
+auto const expr_def = expression;
 // Individual arguments in lists containing one or more compound
 // expressions are separated by a comma.
 auto const sep_expr_def = lit(',') > expr
@@ -211,13 +210,5 @@ BOOST_SPIRIT_DEFINE (
     skewY);
 
 }} // ns
-
-namespace mapnik
-{
-grammar::transform_expression_grammar_type const& transform_expression_grammar()
-{
-    return grammar::transform;
-}
-}
 
 #endif

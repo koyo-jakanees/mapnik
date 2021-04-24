@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,14 +25,22 @@
 
 #include <mapnik/stringify_macro.hpp>
 
-#define MAPNIK_MAJOR_VERSION 3
-#define MAPNIK_MINOR_VERSION 1
+#define MAPNIK_MAJOR_VERSION 4
+#define MAPNIK_MINOR_VERSION 0
 #define MAPNIK_PATCH_VERSION 0
 
-#define MAPNIK_VERSION (MAPNIK_MAJOR_VERSION*100000) + (MAPNIK_MINOR_VERSION*100) + (MAPNIK_PATCH_VERSION)
+#define MAPNIK_VERSION          MAPNIK_VERSION_ENCODE(MAPNIK_MAJOR_VERSION, \
+                                                      MAPNIK_MINOR_VERSION, \
+                                                      MAPNIK_PATCH_VERSION)
 
 #define MAPNIK_VERSION_STRING   MAPNIK_STRINGIFY(MAPNIK_MAJOR_VERSION) "." \
                                 MAPNIK_STRINGIFY(MAPNIK_MINOR_VERSION) "." \
                                 MAPNIK_STRINGIFY(MAPNIK_PATCH_VERSION)
+
+#define MAPNIK_VERSION_AT_LEAST(major, minor, patch) \
+        (MAPNIK_VERSION >= MAPNIK_VERSION_ENCODE(major, minor, patch))
+
+#define MAPNIK_VERSION_ENCODE(major, minor, patch) \
+        ((major) * 100000 + (minor) * 100 + (patch))
 
 #endif // MAPNIK_VERSION_HPP

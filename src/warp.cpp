@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,8 +30,10 @@
 #include <mapnik/view_transform.hpp>
 #include <mapnik/raster.hpp>
 #include <mapnik/proj_transform.hpp>
+#include <mapnik/safe_cast.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_image_filters.h"
 #include "agg_trans_bilinear.h"
@@ -46,9 +48,37 @@
 #include "agg_span_allocator.h"
 #include "agg_image_accessors.h"
 #include "agg_renderer_scanline.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
+
+template <typename T>
+struct pixel_format
+{
+    using type = typename detail::agg_scaling_traits<T>::pixfmt_pre;
+};
+
+template <>
+struct pixel_format<image_rgba8>
+{
+    struct src_blender
+    {
+        using color_type = agg::rgba8;
+        using order_type = agg::order_rgba;
+        using value_type = typename color_type::value_type;
+
+        static inline void blend_pix(unsigned /*op*/, value_type* p,
+                                     unsigned cr, unsigned cg, unsigned cb,
+                                     unsigned ca,
+                                     unsigned cover)
+        {
+            agg::comp_op_rgba_src<color_type, order_type>::blend_pix(p, cr, cg, cb, ca, cover);
+        }
+    };
+
+    // Use comp_op_src to fix seams between faces of the mesh
+    using type = agg::pixfmt_custom_blend_rgba<src_blender, agg::rendering_buffer>;
+};
 
 template <typename T>
 MAPNIK_DECL void warp_image (T & target, T const& source, proj_transform const& prj_trans,
@@ -60,7 +90,8 @@ MAPNIK_DECL void warp_image (T & target, T const& source, proj_transform const& 
     using pixel_type = typename image_type::pixel_type;
     using pixfmt_pre = typename detail::agg_scaling_traits<image_type>::pixfmt_pre;
     using color_type = typename detail::agg_scaling_traits<image_type>::color_type;
-    using renderer_base = agg::renderer_base<pixfmt_pre>;
+    using output_pixfmt_type = typename pixel_format<T>::type;
+    using renderer_base = agg::renderer_base<output_pixfmt_type>;
     using interpolator_type = typename detail::agg_scaling_traits<image_type>::interpolator_type;
 
     constexpr std::size_t pixel_size = sizeof(pixel_type);
@@ -94,7 +125,7 @@ MAPNIK_DECL void warp_image (T & target, T const& source, proj_transform const& 
                               target.width(),
                               target.height(),
                               target.width() * pixel_size);
-    pixfmt_pre pixf(buf);
+    output_pixfmt_type pixf(buf);
     renderer_base rb(pixf);
     rasterizer.clip_box(0, 0, target.width(), target.height());
     agg::rendering_buffer buf_tile(
@@ -153,7 +184,7 @@ MAPNIK_DECL void warp_image (T & target, T const& source, proj_transform const& 
                     boost::optional<typename span_gen_type::value_type> nodata;
                     if (nodata_value)
                     {
-                        nodata = nodata_value;
+                        nodata = safe_cast<typename span_gen_type::value_type>(*nodata_value);
                     }
                     span_gen_type sg(ia, interpolator, filter, nodata);
                     agg::render_scanlines_bin(rasterizer, scanline, rb, sa, sg);

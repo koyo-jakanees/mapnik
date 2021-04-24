@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,10 +25,11 @@
 
 #include <mapnik/transform/transform_expression.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
 
@@ -39,13 +40,10 @@ namespace grammar {
 struct transform_expression_class; // top-most ID
 using transform_expression_grammar_type = x3::rule<transform_expression_class, mapnik::transform_list>;
 
+transform_expression_grammar_type const transform("transform");
+
 BOOST_SPIRIT_DECLARE(transform_expression_grammar_type);
 
 }}  // ns
-
-namespace mapnik
-{
-grammar::transform_expression_grammar_type const& transform_expression_grammar();
-}
 
 #endif

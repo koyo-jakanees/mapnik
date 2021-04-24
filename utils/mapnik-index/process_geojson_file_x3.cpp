@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,12 +23,13 @@
 #include "process_geojson_file_x3.hpp"
 
 #if defined(MAPNIK_MEMORY_MAPPED_FILE)
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 #include <mapnik/mapped_memory_cache.hpp>
 #else
 #include <mapnik/util/file_io.hpp>
@@ -50,6 +51,11 @@ constexpr mapnik::json::well_known_names feature_properties[] = {
 constexpr mapnik::json::well_known_names geometry_properties[] = {
     mapnik::json::well_known_names::type,
     mapnik::json::well_known_names::coordinates}; // sorted
+
+constexpr mapnik::json::well_known_names geometry_collection_properties[] = {
+    mapnik::json::well_known_names::type,
+    mapnik::json::well_known_names::geometries}; // sorted
+
 
 template <typename Keys>
 std::string join(Keys const& keys)
@@ -117,9 +123,12 @@ bool validate_geojson_feature(mapnik::json::geojson_value & value, Keys const& k
                       {
                           return std::get<0>(e0) < std::get<0>(e1);
                       });
-            if (!has_keys(geometry.begin(), geometry.end(), geometry_properties))
+
+            if (!has_keys(geometry.begin(), geometry.end(), geometry_properties)
+                && !has_keys(geometry.begin(), geometry.end(), geometry_collection_properties))
             {
-                if (verbose) std::clog << "Expecting one of " << join(geometry_properties) << std::endl;
+                if (verbose) std::clog << "\"geometry\": xxx <-- expecting one of " << join(geometry_properties)
+                                       << " or " << join(geometry_collection_properties) << std::endl;
                 return false;
             }
 
@@ -213,10 +222,10 @@ bool validate_geojson_feature(mapnik::json::geojson_value & value, Keys const& k
 };
 
 using box_type = mapnik::box2d<float>;
-using boxes_type = std::vector<std::pair<box_type, std::pair<std::size_t, std::size_t>>>;
+using boxes_type = std::vector<std::pair<box_type, std::pair<std::uint64_t, std::uint64_t>>>;
 using base_iterator_type = char const*;
 
-auto const& geojson_value = mapnik::json::geojson_grammar();
+auto const& geojson_value = mapnik::json::grammar::geojson_value;
 
 }
 
@@ -277,8 +286,13 @@ std::pair<bool,typename T::value_type::first_type> process_geojson_file_x3(T & b
     using namespace boost::spirit;
     using space_type = mapnik::json::grammar::space_type;
     auto keys = mapnik::json::get_keys();
+#if BOOST_VERSION >= 106700
+    auto feature_grammar = x3::with<mapnik::json::grammar::keys_tag>(keys)
+        [ geojson_value ];
+#else
     auto feature_grammar = x3::with<mapnik::json::grammar::keys_tag>(std::ref(keys))
         [ geojson_value ];
+#endif
     for (auto const& item : boxes)
     {
         if (item.first.valid())

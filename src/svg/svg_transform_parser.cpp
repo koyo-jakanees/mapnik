@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,8 +37,15 @@ bool parse_svg_transform(const char* wkt, Transform& tr)
     iterator_type first = wkt;
     iterator_type last = wkt + std::strlen(wkt);
     using space_type = mapnik::svg::grammar::space_type;
+
+#if BOOST_VERSION >= 106700
+    auto const grammar = x3::with<mapnik::svg::grammar::svg_transform_tag>(tr)
+        [mapnik::svg::grammar::svg_transform];
+
+#else
     auto const grammar = x3::with<mapnik::svg::grammar::svg_transform_tag>(std::ref(tr))
-          [mapnik::svg::svg_transform_grammar()];
+        [mapnik::svg::grammar::svg_transform];
+#endif
 
     try
     {

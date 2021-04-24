@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,11 +29,12 @@
 #include <mapnik/util/math.hpp>
 #include <mapnik/util/noncopyable.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_basics.h"
 #include "agg_trans_affine.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
 
@@ -42,10 +43,12 @@ struct markers_placement_params
     box2d<double> size;
     agg::trans_affine tr;
     double spacing;
+    double spacing_offset;
     double max_error;
     bool allow_overlap;
     bool avoid_edges;
     direction_enum direction;
+    double scale_factor;
 };
 
 class markers_basic_placement : util::noncopyable
@@ -74,24 +77,27 @@ protected:
                 angle = 0;
                 return true;
             case DIRECTION_DOWN:
-                angle = M_PI;
+                angle = util::pi;
                 return true;
             case DIRECTION_AUTO:
-                if (std::fabs(util::normalize_angle(angle)) > 0.5 * M_PI)
-                    angle += M_PI;
+                angle = util::normalize_angle(angle);
+                if (std::abs(angle) > util::pi / 2)
+                    angle += util::pi;
                 return true;
             case DIRECTION_AUTO_DOWN:
-                if (std::fabs(util::normalize_angle(angle)) < 0.5 * M_PI)
-                    angle += M_PI;
+                angle = util::normalize_angle(angle);
+                if (std::abs(angle) < util::pi / 2)
+                    angle += util::pi;
                 return true;
             case DIRECTION_LEFT:
-                angle += M_PI;
+                angle += util::pi;
                 return true;
             case DIRECTION_LEFT_ONLY:
-                angle += M_PI;
-                return std::fabs(util::normalize_angle(angle)) < 0.5 * M_PI;
+                angle = util::normalize_angle(angle + util::pi);
+                return std::fabs(angle) < util::pi / 2;
             case DIRECTION_RIGHT_ONLY:
-                return std::fabs(util::normalize_angle(angle)) < 0.5 * M_PI;
+                angle = util::normalize_angle(angle);
+                return std::fabs(angle) < util::pi / 2;
             case DIRECTION_RIGHT:
             default:
                 return true;

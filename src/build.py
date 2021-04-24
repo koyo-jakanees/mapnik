@@ -1,7 +1,7 @@
 #
 # This file is part of Mapnik (c++ mapping toolkit)
 #
-# Copyright (C) 2015 Artem Pavlenko
+# Copyright (C) 2017 Artem Pavlenko
 #
 # Mapnik is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,6 @@
 #
 #
 
-
 import os
 import sys
 import glob
@@ -35,7 +34,7 @@ def call(cmd, silent=True):
     if not stderr:
         return stdin.strip()
     elif not silent:
-        print stderr
+        print (stderr)
 
 def ldconfig(*args,**kwargs):
     call('ldconfig')
@@ -77,8 +76,9 @@ if '-DHAVE_PNG' in env['CPPDEFINES']:
    lib_env['LIBS'].append('png')
    enabled_imaging_libraries.append('png_reader.cpp')
 
-if '-DMAPNIK_USE_PROJ4' in env['CPPDEFINES']:
+if '-DMAPNIK_USE_PROJ' in env['CPPDEFINES']:
    lib_env['LIBS'].append('proj')
+   lib_env['LIBS'].append('sqlite3')
 
 if '-DHAVE_TIFF' in env['CPPDEFINES']:
    lib_env['LIBS'].append('tiff')
@@ -170,8 +170,11 @@ source = Split(
     datasource_cache_static.cpp
     debug.cpp
     geometry/box2d.cpp
+    geometry/closest_point.cpp
     geometry/reprojection.cpp
     geometry/envelope.cpp
+    geometry/interior.cpp
+    geometry/polylabel.cpp
     expression_node.cpp
     expression_string.cpp
     expression.cpp
@@ -211,6 +214,7 @@ source = Split(
     twkb.cpp
     projection.cpp
     proj_transform.cpp
+    proj_transform_cache.cpp
     scale_denominator.cpp
     simplify.cpp
     parse_transform.cpp
@@ -222,13 +226,14 @@ source = Split(
     raster_colorizer.cpp
     mapped_memory_cache.cpp
     marker_cache.cpp
+    css/css_color_grammar_x3.cpp
+    css/css_grammar_x3.cpp
     svg/svg_parser.cpp
     svg/svg_path_parser.cpp
     svg/svg_points_parser.cpp
     svg/svg_transform_parser.cpp
     svg/svg_path_grammar_x3.cpp
     warp.cpp
-    css_color_grammar_x3.cpp
     vertex_cache.cpp
     vertex_adapters.cpp
     text/font_library.cpp
@@ -241,6 +246,7 @@ source = Split(
     text/placement_finder.cpp
     text/properties_util.cpp
     text/renderer.cpp
+    text/color_font_renderer.cpp
     text/symbolizer_helpers.cpp
     text/text_properties.cpp
     text/font_feature_settings.cpp
@@ -266,7 +272,8 @@ source = Split(
     renderer_common/render_markers_symbolizer.cpp
     renderer_common/render_pattern.cpp
     renderer_common/render_thunk_extractor.cpp
-    math.cpp
+    renderer_common/pattern_alignment.cpp
+    util/math.cpp
     value.cpp
     """
     )
@@ -286,17 +293,17 @@ if env['PLUGIN_LINKING'] == 'static':
                 lib_env.Append(CPPDEFINES = DEF)
                 if DEF not in libmapnik_defines:
                     libmapnik_defines.append(DEF)
-                if plugin_env.has_key('SOURCES') and plugin_env['SOURCES']:
+                if 'SOURCES' in plugin_env and plugin_env['SOURCES']:
                     source += ['../plugins/input/%s/%s' % (plugin, src) for src in plugin_env['SOURCES']]
-                if plugin_env.has_key('CPPDEFINES') and plugin_env['CPPDEFINES']:
+                if 'CPPDEFINES' in plugin_env  and plugin_env['CPPDEFINES']:
                     lib_env.AppendUnique(CPPDEFINES=plugin_env['CPPDEFINES'])
-                if plugin_env.has_key('CXXFLAGS') and plugin_env['CXXFLAGS']:
+                if 'CXXFLAGS' in plugin_env and plugin_env['CXXFLAGS']:
                     lib_env.AppendUnique(CXXFLAGS=plugin_env['CXXFLAGS'])
-                if plugin_env.has_key('LINKFLAGS') and plugin_env['LINKFLAGS']:
+                if 'LINKFLAGS' in plugin_env and plugin_env['LINKFLAGS']:
                     lib_env.AppendUnique(LINKFLAGS=plugin_env['LINKFLAGS'])
-                if plugin_env.has_key('CPPPATH') and plugin_env['CPPPATH']:
+                if 'CPPPATH' in plugin_env and plugin_env['CPPPATH']:
                     lib_env.AppendUnique(CPPPATH=copy(plugin_env['CPPPATH']))
-                if plugin_env.has_key('LIBS') and plugin_env['LIBS']:
+                if 'LIBS' in plugin_env and plugin_env['LIBS']:
                     lib_env.AppendUnique(LIBS=plugin_env['LIBS'])
         else:
             print("Notice: dependencies not met for plugin '%s', not building..." % plugin)
@@ -310,6 +317,13 @@ source += Split("""
 cairo/process_markers_symbolizer.cpp
 cairo/process_group_symbolizer.cpp
 """)
+
+if env['ENABLE_GLIBC_WORKAROUND']:
+    source += Split(
+            """
+            glibc_workaround.cpp
+            """
+        )
 
 if env['HAS_CAIRO']:
     lib_env.AppendUnique(LIBPATH=env['CAIRO_LIBPATHS'])

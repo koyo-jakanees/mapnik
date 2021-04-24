@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2015 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,8 @@
 #include <mapnik/util/fs.hpp>
 #include <cstdlib>
 #include <algorithm>
+#include <cctype>
+#include <locale>
 #include <boost/optional/optional_io.hpp>
 
 /*
@@ -63,6 +65,16 @@ std::pair<mapnik::datasource_ptr,mapnik::feature_ptr> fetch_first_feature(std::s
     auto features = ds->features(query);
     auto feature = features->next();
     return std::make_pair(ds,feature);
+}
+
+
+void iterate_over_features(mapnik::featureset_ptr features)
+{
+    auto feature = features->next();
+    while (feature != nullptr)
+    {
+        feature = features->next();
+    }
 }
 
 }
@@ -106,14 +118,7 @@ TEST_CASE("geojson") {
                 params["type"] = "geojson";
                 params["file"] = "./test/data/json/empty_featurecollection.json";
                 params["cache_features"] = cache_features;
-                auto ds = mapnik::datasource_cache::instance().create(params);
-                CHECK(ds != nullptr);
-                auto fs = all_features(ds);
-                REQUIRE(!mapnik::is_valid(fs));
-                while (auto f = fs->next())
-                {
-                    CHECK(false); // shouldn't get here
-                }
+                REQUIRE_THROWS(mapnik::datasource_cache::instance().create(params));
             }
         }
 
@@ -437,6 +442,54 @@ TEST_CASE("geojson") {
             }
         }
 
+        SECTION("GeoJSON ensure empty and null properties are handled")
+        {
+            mapnik::parameters params;
+            params["type"] = "geojson";
+
+            for (auto const& c_str : {"./test/data/json/feature-null-properties.json",
+                        "./test/data/json/feature-empty-properties.json"})
+            {
+                std::string filename(c_str);
+                params["file"] = filename;
+
+                // cleanup in the case of a failed previous run
+                if (mapnik::util::exists(filename + ".index"))
+                {
+                    mapnik::util::remove(filename + ".index");
+                }
+
+                for (auto create_index : { true, false })
+                {
+                    if (create_index)
+                    {
+                        CHECK(!mapnik::util::exists(filename + ".index"));
+                        int ret = create_disk_index(filename);
+                        int ret_posix = (ret >> 8) & 0x000000ff;
+                        INFO(ret);
+                        INFO(ret_posix);
+                        CHECK(!mapnik::util::exists(filename + ".index"));
+                    }
+
+                    for (auto cache_features : {true, false})
+                    {
+                        params["cache_features"] = cache_features;
+                        auto ds = mapnik::datasource_cache::instance().create(params);
+                        REQUIRE(bool(ds));
+                        CHECK(ds->get_geometry_type() == mapnik::datasource_geometry_t::Point);
+                        auto fields = ds->get_descriptor().get_descriptors();
+                        CHECK(fields.size() == 0);
+                    }
+
+                    // cleanup
+                    if (create_index && mapnik::util::exists(filename + ".index"))
+                    {
+                        mapnik::util::remove(filename + ".index");
+                    }
+                }
+            }
+        }
+
         SECTION("GeoJSON FeatureCollection")
         {
             std::string filename("./test/data/json/featurecollection.json");
@@ -548,7 +601,61 @@ TEST_CASE("geojson") {
                 {
                     mapnik::util::remove(filename + ".index");
                 }
+            }
+        }
 
+        SECTION("GeoJSON \"type\":\"FeatureCollection\" in Feature properties (#4140)")
+        {
+            // Create datasource
+            mapnik::parameters params;
+            params["type"] = "geojson";
+            std::string filename("./test/data/json/feature_collection_issue_4140.json");
+            params["file"] = filename;
+
+            // cleanup in the case of a failed previous run
+            if (mapnik::util::exists(filename + ".index"))
+            {
+                mapnik::util::remove(filename + ".index");
+            }
+
+            for (auto create_index : { true, false })
+            {
+                if (create_index)
+                {
+                    int ret = create_disk_index(filename);
+                    int ret_posix = (ret >> 8) & 0x000000ff;
+                    INFO(ret);
+                    INFO(ret_posix);
+                    CHECK(mapnik::util::exists(filename + ".index"));
+                }
+
+                for (auto cache_features : {true, false})
+                {
+                    params["cache_features"] = cache_features;
+                    auto ds = mapnik::datasource_cache::instance().create(params);
+                    CHECK(ds->get_geometry_type() == mapnik::datasource_geometry_t::Point);
+                    REQUIRE(bool(ds));
+                    auto fields = ds->get_descriptor().get_descriptors();
+                    mapnik::query query(ds->envelope());
+                    for (auto const& field : fields)
+                    {
+                        query.add_property_name(field.get_name());
+                    }
+                    auto features = ds->features(query);
+                    auto feature1 = features->next();
+                    REQUIRE(feature1 != nullptr);
+                    REQUIRE(feature1->envelope() == mapnik::box2d<double>(-122.0,48.0,-122.0,48.0));
+                    auto feature2 = features->next();
+                    REQUIRE(feature2 != nullptr);
+                    REQUIRE(feature2->envelope() == mapnik::box2d<double>(0.0,51.0,0.0,51.0));
+                    REQUIRE(ds->envelope() == mapnik::box2d<double>(-122.0,48.0,0.0,51.0));
+                }
+
+                // cleanup
+                if (create_index && mapnik::util::exists(filename + ".index"))
+                {
+                    mapnik::util::remove(filename + ".index");
+                }
             }
         }
 
@@ -624,12 +731,7 @@ TEST_CASE("geojson") {
                 auto fields = ds->get_descriptor().get_descriptors();
                 mapnik::query query(ds->envelope());
                 auto features = ds->features(query);
-                REQUIRE_THROWS(
-                    auto feature = features->next();
-                    while (feature != nullptr)
-                    {
-                        feature = features->next();
-                    });
+                REQUIRE_THROWS(iterate_over_features(features));
             }
 
             // cleanup
@@ -829,7 +931,7 @@ TEST_CASE("geojson") {
                     std::initializer_list<attr> attrs = {
                         attr{"name", tr.transcode("Test")},
                         attr{"NOM_FR", tr.transcode("Québec")},
-                        attr{"boolean", mapnik::value_bool("true")},
+                        attr{"boolean", mapnik::value_bool(true)},
                         attr{"description", tr.transcode("Test: \u005C")},
                         attr{"double", mapnik::value_double(1.1)},
                         attr{"int", mapnik::value_integer(1)},

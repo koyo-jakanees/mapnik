@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2015 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,10 +28,11 @@
 #include <mapnik/util/fs.hpp>
 #include <cstdlib>
 #include <fstream>
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace {
 
@@ -162,9 +163,13 @@ TEST_CASE("shapeindex")
                         // count features
                         std::size_t feature_count = count_shapefile_features(path);
                         // create *.index
-                        REQUIRE(create_shapefile_index(path, index_parts) == 0);
-                        if (feature_count == 0)
+                        if (feature_count > 0)
                         {
+                            REQUIRE(create_shapefile_index(path, index_parts) == EXIT_SUCCESS);
+                        }
+                        else
+                        {
+                            REQUIRE(create_shapefile_index(path, index_parts) != EXIT_SUCCESS);
                             REQUIRE(!mapnik::util::exists(index_path)); // index won't be created if there's no features
                         }
                         // count features

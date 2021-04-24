@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,9 +31,15 @@ void parse_feature(Iterator start, Iterator end, feature_impl& feature, mapnik::
 {
     namespace x3 = boost::spirit::x3;
     using space_type = mapnik::json::grammar::space_type;
+#if BOOST_VERSION >= 106700
+    auto grammar = x3::with<mapnik::json::grammar::transcoder_tag>(tr)
+        [x3::with<mapnik::json::grammar::feature_tag>(feature)
+         [ mapnik::json::grammar::feature_rule ]];
+#else
     auto grammar = x3::with<mapnik::json::grammar::transcoder_tag>(std::ref(tr))
         [x3::with<mapnik::json::grammar::feature_tag>(std::ref(feature))
-          [ mapnik::json::feature_grammar() ]];
+         [ mapnik::json::grammar::feature_rule ]];
+#endif
     if (!x3::phrase_parse(start, end, grammar, space_type()))
     {
         throw std::runtime_error("Can't parser GeoJSON Feature");
@@ -45,7 +51,7 @@ void parse_geometry(Iterator start, Iterator end, feature_impl& feature)
 {
     namespace x3 = boost::spirit::x3;
     using space_type = mapnik::json::grammar::space_type;
-    auto grammar = mapnik::json::geometry_grammar();
+    auto grammar = mapnik::json::grammar::geometry_rule;
     if (!x3::phrase_parse(start, end, grammar, space_type(), feature.get_geometry()))
     {
         throw std::runtime_error("Can't parser GeoJSON Geometry");

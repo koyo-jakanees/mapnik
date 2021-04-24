@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,10 +42,11 @@
 #include <mapnik/enumeration.hpp>
 #include <mapnik/image.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/optional.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <memory>
 #include <vector>
@@ -61,9 +62,11 @@ class raster;
 enum colorizer_mode_enum : std::uint8_t
 {
     COLORIZER_INHERIT = 0,    //!< The stop inherits the mode from the colorizer
-    COLORIZER_LINEAR = 1,     //!< Linear interpolation between colors
+    COLORIZER_LINEAR = 1,     //!< Linear interpolation between colors, each channel separately
     COLORIZER_DISCRETE = 2,   //!< Single color for stop
     COLORIZER_EXACT = 3,      //!< Only the exact value specified for the stop gets translated, others use the default
+    COLORIZER_LINEAR_RGBA = 4,//!< Linear interpolation between colors, all channels combined as RGBA value
+    COLORIZER_LINEAR_BGRA = 5,//!< Linear interpolation between colors, all channels combined as BGRA value
     colorizer_mode_enum_MAX
 };
 

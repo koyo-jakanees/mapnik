@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -55,12 +55,13 @@ porting notes -->
 #include <mapnik/svg/svg_path_attributes.hpp>
 #include <mapnik/renderer_common/render_markers_symbolizer.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_basics.h"
 #include "agg_rendering_buffer.h"
 #include "agg_rasterizer_scanline_aa.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
 
@@ -141,12 +142,10 @@ void grid_renderer<T>::process(markers_symbolizer const& sym,
     using buf_type = grid_rendering_buffer;
     using pixfmt_type = typename grid_renderer_base_type::pixfmt_type;
     using renderer_type = agg::renderer_scanline_bin_solid<grid_renderer_base_type>;
-
-    using namespace mapnik::svg;
-    using svg_renderer_type = svg_renderer_agg<svg_path_adapter,
-                                               svg_attribute_type,
-                                               renderer_type,
-                                               pixfmt_type>;
+    using svg_renderer_type = svg::renderer_agg<svg_path_adapter,
+                                                svg_attribute_type,
+                                                renderer_type,
+                                                pixfmt_type>;
 
     buf_type render_buf(pixmap_.raw_data(), common_.width_, common_.height_, common_.width_);
     ras_ptr->reset();

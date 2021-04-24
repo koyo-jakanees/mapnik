@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,10 +23,9 @@
 
 // mapnik
 #include <mapnik/wkb.hpp>
-#include <mapnik/feature.hpp>
-#include <mapnik/geom_util.hpp>
-#include <mapnik/util/noncopyable.hpp>
+#include <mapnik/geometry.hpp>
 #include <mapnik/geometry/correct.hpp>
+#include <mapnik/util/noncopyable.hpp>
 #include <cmath>
 
 namespace mapnik { namespace detail {

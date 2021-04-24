@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,13 +29,11 @@ feature_generator_grammar<OutputIterator, FeatureType>::feature_generator_gramma
   : feature_generator_grammar::base_type(feature)
 {
     boost::spirit::karma::lit_type lit;
-    boost::spirit::karma::uint_type uint_;
-    boost::spirit::karma::_val_type _val;
-    boost::spirit::karma::_1_type _1;
+    boost::spirit::karma::long_long_type id;
 
-    feature = lit("{\"type\":\"Feature\",\"id\":")
-        << uint_[_1 = id_(_val)]
-        << lit(",\"geometry\":") << geometry[_1 = geom_(_val)]
+    feature  = lit("{\"type\":\"Feature\"")
+        << lit(",\"id\":") << id
+        << lit(",\"geometry\":") << geometry
         << lit(",\"properties\":") << properties
         << lit('}')
         ;

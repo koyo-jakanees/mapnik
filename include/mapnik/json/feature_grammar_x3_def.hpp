@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -140,11 +140,10 @@ using x3::omit;
 using x3::char_;
 
 namespace {
-auto const& value = generic_json_grammar();
 // import unicode string rule
-auto const& geojson_string = unicode_string_grammar();
+auto const& geojson_string = unicode_string;
 // import positions rule
-auto const& positions_rule = positions_grammar();
+auto const& positions_rule = positions;
 }
 
 // geometry types symbols
@@ -164,6 +163,8 @@ struct geometry_type_ : x3::symbols<mapnik::geometry::geometry_types>
     }
 } geometry_type_symbols;
 
+namespace {
+
 auto assign_name = [](auto const& ctx)
 {
     std::get<0>(_val(ctx)) = std::move(_attr(ctx));
@@ -172,6 +173,8 @@ auto assign_value = [](auto const& ctx)
 {
     std::get<1>(_val(ctx)) = std::move(_attr(ctx));
 };
+
+} // VS2017
 
 auto const assign_geometry_type = [] (auto const& ctx)
 {
@@ -229,15 +232,13 @@ auto assign_property = [](auto const& ctx)
 };
 
 
-//exported rules
-feature_grammar_type const feature_rule = "Feature Rule";
-geometry_grammar_type const geometry_rule = "Feature Rule";
-
 // rules
 x3::rule<struct feature_type_tag> const feature_type = "Feature Type";
 x3::rule<struct geometry_type_tag, mapnik::geometry::geometry_types> const geometry_type = "Geometry Type";
 x3::rule<struct coordinates_tag, mapnik::json::positions> const coordinates = "Coordinates";
-x3::rule<struct geomerty_tag, std::tuple<mapnik::geometry::geometry_types, mapnik::json::positions, mapnik::geometry::geometry_collection<double>>> const geometry_tuple = "Geometry";
+x3::rule<struct geomerty_tag, std::tuple<mapnik::geometry::geometry_types,
+                                         mapnik::json::positions,
+                                         mapnik::geometry::geometry_collection<double>>> const geometry_tuple = "Geometry";
 x3::rule<struct property, std::tuple<std::string, json_value>> const property = "Property";
 x3::rule<struct properties_tag> const properties = "Properties";
 x3::rule<struct feature_part_rule_tag> const feature_part = "Feature part";
@@ -271,7 +272,7 @@ auto const feature_part_def = feature_type
     |
     (lit("\"geometry\"") > lit(':') >  geometry_rule[assign_geometry])
     |
-    (lit("\"properties\"") > lit(':') > lit('{') > -properties > lit('}'))
+    (lit("\"properties\"") > lit(':') > ((lit('{') > -properties > lit('}')) | lit("null")))
     |
     (omit[geojson_string] > lit(':') > omit[value])
     ;
@@ -282,7 +283,8 @@ auto const feature_rule_def = lit('{') > feature_part % lit(',') > lit('}');
 
 auto const geometry_rule_def =  (lit('{') > geometry_tuple[create_geometry] > lit('}')) | lit("null");
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 
 BOOST_SPIRIT_DEFINE(
@@ -297,22 +299,8 @@ BOOST_SPIRIT_DEFINE(
     geometry_rule,
     geometry_collection
     );
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 }}}
-
-namespace mapnik { namespace json {
-
-grammar::feature_grammar_type const& feature_grammar()
-{
-    return grammar::feature_rule;
-}
-
-grammar::geometry_grammar_type const& geometry_grammar()
-{
-    return grammar::geometry_rule;
-}
-
-}}
 
 #endif // MAPNIK_JSON_FEATURE_GRAMMAR_X3_DEF_HPP

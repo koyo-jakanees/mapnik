@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,7 +44,8 @@
 #include <mapnik/image_any.hpp>
 #include <mapnik/make_unique.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_rendering_buffer.h"
 #include "agg_pixfmt_rgba.h"
@@ -55,12 +56,13 @@
 #include "agg_span_allocator.h"
 #include "agg_image_accessors.h"
 #include "agg_span_image_filter_rgba.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/optional.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <cmath>
@@ -250,9 +252,7 @@ void agg_renderer<T0,T1>::end_layer_processing(layer const& lyr)
     {
         composite_mode_e comp_op = lyr.comp_op() ? *lyr.comp_op() : src_over;
         composite(previous_buffer, current_buffer,
-                  comp_op, lyr.get_opacity(),
-                  -common_.t_.offset(),
-                  -common_.t_.offset());
+                  comp_op, lyr.get_opacity(), 0, 0);
         internal_buffers_.pop();
     }
 }
@@ -342,7 +342,8 @@ void agg_renderer<T0,T1>::end_style_processing(feature_type_style const& st)
                       -common_.t_.offset(),
                       -common_.t_.offset());
         }
-        if (&current_buffer == &internal_buffers_.top())
+        if (internal_buffers_.in_range()
+            && &current_buffer == &internal_buffers_.top())
         {
             internal_buffers_.pop();
         }
@@ -418,14 +419,12 @@ struct agg_render_marker_visitor
         mtx *= agg::trans_affine_scaling(common_.scale_factor_);
         // render the marker at the center of the marker box
         mtx.translate(pos_.x, pos_.y);
-        using namespace mapnik::svg;
-        vertex_stl_adapter<svg_path_storage> stl_storage(marker.get_data()->source());
+        svg::vertex_stl_adapter<svg::svg_path_storage> stl_storage(marker.get_data()->source());
         svg_path_adapter svg_path(stl_storage);
-        svg_renderer_agg<svg_path_adapter,
-                         svg_attribute_type,
-                         renderer_type,
-                         pixfmt_comp_type> svg_renderer(svg_path,
-                                                        marker.get_data()->attributes());
+        svg::renderer_agg<svg_path_adapter,
+                          svg_attribute_type,
+                          renderer_type,
+                          pixfmt_comp_type> svg_renderer(svg_path, marker.get_data()->attributes());
 
         // https://github.com/mapnik/mapnik/issues/1316
         // https://github.com/mapnik/mapnik/issues/1866

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -111,28 +111,12 @@ inline void read_double_xdr(const char* data, double & val)
 }
 
 #if defined(_MSC_VER) && _MSC_VER < 1800
-// msvc doesn't have rint in <cmath>
-inline int rint(double val)
-{
-    return int(std::floor(val + 0.5));
-}
-
 inline double round(double val)
 {
     return std::floor(val);
 }
 #endif
 
-#if defined(_MSC_VER)
-#define  _USE_MATH_DEFINES
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#endif
-
 }
-
-
 
 #endif // MAPNIK_GLOBAL_HPP

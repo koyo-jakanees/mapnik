@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,10 +26,11 @@
 // mapnik
 #include <mapnik/path_expression.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik { namespace grammar {
 
@@ -37,12 +38,10 @@ namespace x3 = boost::spirit::x3;
 struct path_expression_class; // top-most ID
 using path_expression_grammar_type = x3::rule<path_expression_class, path_expression>;
 
+path_expression_grammar_type const path_expression = "path_expression";
+
 BOOST_SPIRIT_DECLARE(path_expression_grammar_type);
 
-}
-
-grammar::path_expression_grammar_type const& path_expression_grammar();
-
-}
+}}
 
 #endif  // MAPNIK_PATH_EXPRESSIONS_GRAMMAR_X3_HPP

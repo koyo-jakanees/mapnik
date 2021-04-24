@@ -28,6 +28,10 @@ on () {
     esac
 }
 
+test_ok () {
+    return $TRAVIS_TEST_RESULT
+}
+
 git_submodule_update () {
     git submodule update "$@" && return
     # failed, search branch and pull request heads for matching commit
@@ -73,33 +77,26 @@ config_override () {
 
 configure () {
     if enabled ${COVERAGE}; then
-        ./configure "$@" PREFIX=${PREFIX} PGSQL2SQLITE=False SVG2PNG=False SVG_RENDERER=False \
-            COVERAGE=True DEBUG=True
+        ./configure "PREFIX=$PREFIX" "CUSTOM_LDFLAGS=$LINKFLAGS" "$@" \
+                    COVERAGE=True DEBUG=True \
+                    PGSQL2SQLITE=False SVG2PNG=False SVG_RENDERER=False
     else
-        ./configure "$@" PREFIX=${PREFIX}
+        ./configure "PREFIX=$PREFIX" "CUSTOM_LDFLAGS=$LINKFLAGS" "$@"
     fi
     # print final config values, sorted and indented
     sort -sk1,1 ./config.py | sed -e 's/^/	/'
 }
 
 coverage () {
-    ./codecov -x "llvm-cov gcov" -Z
-}
-
-trigger_downstream() {
-    body="{
-        \"request\": {
-          \"message\": \"Triggered build: Mapnik core commit ${TRAVIS_COMMIT}\",
-          \"branch\":\"master\"
-        }
-    }
-    "
-
-    curl -s -X POST \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json" \
-      -H "Travis-API-Version: 3" \
-      -H "Authorization: token ${TRAVIS_TRIGGER_TOKEN}" \
-      -d "$body" \
-      https://api.travis-ci.org/repo/mapnik%2Fpython-mapnik/requests
+    ./codecov -Z \
+        -g "./benchmark/**" \
+        -g "./demo/**" \
+        -g "./deps/**" \
+        -g "./docs/**" \
+        -g "./fonts/**" \
+        -g "./mason_packages/**" \
+        -g "./.sconf_temp/**" \
+        -g "./scons/**" \
+        -g "./test/**" \
+        -x "${LLVM_COV:-llvm-cov} gcov >/dev/null 2>&1"
 }

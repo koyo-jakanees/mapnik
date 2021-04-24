@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,15 +34,20 @@ using x3::double_;
 using x3::no_case;
 using x3::omit;
 
-// start rule
-positions_grammar_type const positions("Positions");
+namespace {
+auto assign_helper = [](auto const& ctx)
+{
+    _val(ctx) = std::move(_attr(ctx));
+};
+} // anonymous ns
+
 // rules
 x3::rule<class point_class, point> const point("Position");
 x3::rule<class ring_class, ring> const ring("Ring");
 x3::rule<class rings_class, rings> const rings("Rings");
 x3::rule<class rings_array_class, rings_array> const rings_array("RingsArray");
 
-auto const positions_def = rings_array | rings | ring | point ;
+auto const positions_def = rings_array[assign_helper] | rings[assign_helper] | ring[assign_helper] | point[assign_helper] ;
 auto const point_def = lit('[') > double_ > lit(',') > double_ > omit[*(lit(',') > double_)] > lit(']');
 auto const ring_def = lit('[') >> -(point % lit(',')) >> lit(']');
 auto const rings_def = lit('[') >> (ring % lit(',') > lit(']'));
@@ -56,12 +61,5 @@ BOOST_SPIRIT_DEFINE(
     rings_array
     );
 }}}
-
-namespace mapnik { namespace json {
-grammar::positions_grammar_type const& positions_grammar()
-{
-    return grammar::positions;
-}
-}}
 
 #endif // MAPNIK_JSON_POSITIONS_GRAMMAR_X3_DEF_HPP

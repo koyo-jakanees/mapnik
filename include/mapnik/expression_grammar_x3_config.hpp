@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,6 @@
 #define MAPNIK_EXPRESSIONS_GRAMMAR_X3_CONFIG_HPP
 
 #include <mapnik/expression_grammar_x3.hpp>
-#include <mapnik/unicode.hpp>
 #include <string>
 
 namespace mapnik { namespace grammar {
@@ -32,11 +31,10 @@ namespace mapnik { namespace grammar {
 namespace x3 = boost::spirit::x3;
 using iterator_type = std::string::const_iterator;
 using phrase_context_type = x3::phrase_parse_context<x3::ascii::space_type>::type;
-
 // define combined context
-using context_type = x3::with_context<transcoder_tag,
-                                      std::reference_wrapper<mapnik::transcoder const> const,
-                                      phrase_context_type>::type;
+using context_type = x3::context<transcoder_tag,
+                                 transcoder_type const,
+                                 phrase_context_type>;
 
 }}
 

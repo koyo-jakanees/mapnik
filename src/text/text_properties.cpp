@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 // mapnik
 #include <mapnik/text/text_properties.hpp>
 #include <mapnik/text/text_layout.hpp>
+#include <mapnik/util/math.hpp>
 #include <mapnik/debug.hpp>
 #include <mapnik/feature.hpp>
 #include <mapnik/symbolizer.hpp>
@@ -34,10 +35,11 @@
 #include <mapnik/boolean.hpp>
 #include <mapnik/make_unique.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/property_tree/ptree.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <memory>
 
@@ -59,10 +61,12 @@ evaluated_text_properties_ptr evaluate_text_properties(text_symbolizer_propertie
     prop->minimum_distance = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.minimum_distance);
     prop->minimum_padding = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.minimum_padding);
     prop->minimum_path_length = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.minimum_path_length);
-    prop->max_char_angle_delta = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.max_char_angle_delta) * M_PI/180;
+    prop->max_char_angle_delta = util::radians(util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.max_char_angle_delta));
     prop->allow_overlap = util::apply_visitor(extract_value<value_bool>(feature,attrs), text_prop.expressions.allow_overlap);
     prop->largest_bbox_only = util::apply_visitor(extract_value<value_bool>(feature,attrs), text_prop.expressions.largest_bbox_only);
     prop->upright = util::apply_visitor(extract_value<text_upright_enum>(feature,attrs), text_prop.expressions.upright);
+    prop->grid_cell_width = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.grid_cell_width);
+    prop->grid_cell_height = util::apply_visitor(extract_value<value_double>(feature,attrs), text_prop.expressions.grid_cell_height);
     return prop;
 }
 
@@ -110,6 +114,8 @@ void text_symbolizer_properties::text_properties_from_xml(xml_node const& node)
     set_property_from_xml<value_bool>(expressions.largest_bbox_only, "largest-bbox-only", node);
     set_property_from_xml<value_double>(expressions.max_char_angle_delta, "max-char-angle-delta", node);
     set_property_from_xml<text_upright_e>(expressions.upright, "upright", node);
+    set_property_from_xml<value_double>(expressions.grid_cell_width, "grid-cell-width", node);
+    set_property_from_xml<value_double>(expressions.grid_cell_height, "grid-cell-height", node);
 }
 
 void text_symbolizer_properties::from_xml(xml_node const& node, fontset_map const& fontsets, bool is_shield)
@@ -177,6 +183,14 @@ void text_symbolizer_properties::to_xml(boost::property_tree::ptree &node,
     {
         serialize_property("upright", expressions.upright, node);
     }
+    if (!(expressions.grid_cell_width == dfl.expressions.grid_cell_width) || explicit_defaults)
+    {
+        serialize_property("grid-cell-width", expressions.grid_cell_width, node);
+    }
+    if (!(expressions.grid_cell_height == dfl.expressions.grid_cell_height) || explicit_defaults)
+    {
+        serialize_property("grid-cell-height", expressions.grid_cell_height, node);
+    }
 
     layout_defaults.to_xml(node, explicit_defaults, dfl.layout_defaults);
     format_defaults.to_xml(node, explicit_defaults, dfl.format_defaults);
@@ -199,6 +213,8 @@ void text_symbolizer_properties::add_expressions(expression_set & output) const
     if (is_expression(expressions.allow_overlap)) output.insert(util::get<expression_ptr>(expressions.allow_overlap));
     if (is_expression(expressions.largest_bbox_only)) output.insert(util::get<expression_ptr>(expressions.largest_bbox_only));
     if (is_expression(expressions.upright)) output.insert(util::get<expression_ptr>(expressions.upright));
+    if (is_expression(expressions.grid_cell_width)) output.insert(util::get<expression_ptr>(expressions.grid_cell_width));
+    if (is_expression(expressions.grid_cell_height)) output.insert(util::get<expression_ptr>(expressions.grid_cell_height));
 
     layout_defaults.add_expressions(output);
     format_defaults.add_expressions(output);

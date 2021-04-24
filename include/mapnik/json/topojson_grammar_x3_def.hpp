@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,14 +23,16 @@
 #ifndef MAPNIK_JSON_TOPOJSON_GRAMMAR_X3_DEF_HPP
 #define MAPNIK_JSON_TOPOJSON_GRAMMAR_X3_DEF_HPP
 
-#include <mapnik/json/topojson_grammar_x3.hpp>
 #include <mapnik/json/unicode_string_grammar_x3.hpp>
 #include <mapnik/json/generic_json_grammar_x3.hpp>
-#pragma GCC diagnostic push
+#include <mapnik/json/topojson_grammar_x3.hpp>
+
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/fusion/adapted/struct.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 BOOST_FUSION_ADAPT_STRUCT(
     mapnik::topojson::coordinate,
@@ -274,13 +276,13 @@ using x3::lit;
 using x3::double_;
 using x3::int_;
 using x3::omit;
-using x3::char_;
+
 namespace
 {
 // import unicode string rule
-auto const& json_string = json::unicode_string_grammar();
+auto const& json_string = json::grammar::unicode_string;
 // json value
-auto const& json_value = json::generic_json_grammar();
+auto const& json_value = json::grammar::value;
 }
 
 using coordinates_type = util::variant<topojson::coordinate,std::vector<topojson::coordinate>>;
@@ -288,9 +290,9 @@ using arcs_type = util::variant<std::vector<index_type>,
                                 std::vector<std::vector<index_type>>,
                                 std::vector<std::vector<std::vector<index_type>>>>;
 
-struct geometry_type_ : x3::symbols<int>
+struct topojson_geometry_type_ : x3::symbols<int>
 {
-    geometry_type_()
+    topojson_geometry_type_()
     {
         add
             ("\"Point\"",1)
@@ -301,10 +303,8 @@ struct geometry_type_ : x3::symbols<int>
             ("\"MultiPolygon\"",6)
             ;
     }
-} geometry_type;
+} topojson_geometry_type;
 
-// start rule
-topojson_grammar_type const topology = "Topology";
 // rules
 x3::rule<class transform_tag, mapnik::topojson::transform> const transform = "Transform";
 x3::rule<class bbox_tag, mapnik::topojson::bounding_box> const bbox = "Bounding Box";
@@ -358,14 +358,18 @@ auto const  bbox_def = lit("\"bbox\"") > lit(':')
     ;
 
 
+// A topology must have an “objects” member whose value is an object.
+// This object may have any number of members, whose value must be a geometry object.
 auto const objects_def = lit("\"objects\"") > lit(':')
     > lit('{')
-    > ((omit[*~char_(':')] > lit(':') > ((geometry_collection[push_collection] | geometry[push_geometry]))) % lit(','))
+    > -((omit[json_string] > ':' > ( geometry_collection[push_collection]
+                                   | geometry[push_geometry]
+                                   )) % ',')
     > lit('}')
     ;
 
 auto const geometry_tuple_def =
-    ((lit("\"type\"") > lit(':') > geometry_type[assign_geometry_type])
+    ((lit("\"type\"") > lit(':') > topojson_geometry_type[assign_geometry_type])
      |
      (lit("\"coordinates\"") > lit(':') > coordinates[assign_coordinates])
      |
@@ -434,12 +438,5 @@ BOOST_SPIRIT_DEFINE(
     );
 
 }}}
-
-namespace mapnik { namespace json {
-grammar::topojson_grammar_type const& topojson_grammar()
-{
-    return grammar::topology;
-}
-}}
 
 #endif //MAPNIK_TOPOJSON_GRAMMAR_X3_DEF_HPP

@@ -1,4 +1,3 @@
-
 #include "catch.hpp"
 
 // mapnik
@@ -20,16 +19,14 @@ SECTION("test bad filter input") {
     mapnik::fill(im,mapnik::color("blue"));
     mapnik::set_pixel(im, 1, 1, mapnik::color("red"));
 
-    REQUIRE_THROWS( mapnik::filter::filter_image(im, "foo,asdfasdf()"); );
-    REQUIRE_THROWS( mapnik::filter::filter_image(im, "colorize-alpha("); );
-    REQUIRE_THROWS( mapnik::filter::filter_image(im, "color-to-alpha(blue"); );
-    REQUIRE_THROWS( mapnik::filter::filter_image(im, "color-to-alpha(,blue)"); );
-    REQUIRE_THROWS( mapnik::filter::filter_image(im, "colorize-alpha()"); );
+    REQUIRE_THROWS( mapnik::filter::filter_image(im, "foo,asdfasdf()"));
+    REQUIRE_THROWS( mapnik::filter::filter_image(im, "colorize-alpha("));
+    REQUIRE_THROWS( mapnik::filter::filter_image(im, "color-to-alpha(blue"));
+    REQUIRE_THROWS( mapnik::filter::filter_image(im, "color-to-alpha(,blue)"));
+    REQUIRE_THROWS( mapnik::filter::filter_image(im, "colorize-alpha()"));
 
-    REQUIRE_THROWS(
-        mapnik::image_rgba8 const& im2 = im;
-        mapnik::image_rgba8 new_im = mapnik::filter::filter_image(im2, "foo");
-    );
+    mapnik::image_rgba8 const& im2 = im;
+    REQUIRE_THROWS(mapnik::filter::filter_image(im2, "foo"));
 
     CHECK(im(0,0) == 0xffff0000);
     CHECK(im(0,1) == 0xffff0000);
@@ -159,7 +156,7 @@ SECTION("test scale-hsla 2") {
 
     // Should not throw on values out of [0, 1]
     // https://github.com/mapnik/mapnik/issues/3052
-    REQUIRE_NOTHROW(mapnik::filter::filter_image(im, "scale-hsla(0.0,1.5,-1.0,1.0,-1.0,2.0,1.0,1.0)"););
+    REQUIRE_NOTHROW(mapnik::filter::filter_image(im, "scale-hsla(0.0,1.5,-1.0,1.0,-1.0,2.0,1.0,1.0)"));
 
     CHECK(im(0,0) == 0xff0000ff);
     CHECK(im(0,1) == 0xffefeff4);
@@ -482,7 +479,7 @@ SECTION("test color-blind-protanope") {
 
     CHECK(im(0,0) == 0xff9a4a00);
     CHECK(im(0,1) == 0xff006e7c);
-    CHECK(im(1,0) == 0xffd9f6ff);
+    CHECK(im(1,0) == 0xff00f7ff);
     CHECK(im(1,1) == 0xff1d7e8e);
 
 } // END SECTION
@@ -499,7 +496,7 @@ SECTION("test color-blind-deuteranope") {
 
     CHECK(im(0,0) == 0xff824f00);
     CHECK(im(0,1) == 0xff1c688b);
-    CHECK(im(1,0) == 0xffe9f5ff);
+    CHECK(im(1,0) == 0xff27e9ff);
     CHECK(im(1,1) == 0xff0077a0);
 
 } // END SECTION
@@ -516,7 +513,7 @@ SECTION("test color-blind-tritanope") {
 
     CHECK(im(0,0) == 0xff595500);
     CHECK(im(0,1) == 0xff80763a);
-    CHECK(im(1,0) == 0xfff8f3ff);
+    CHECK(im(1,0) == 0xfffeecff);
     CHECK(im(1,1) == 0xff0017fd);
 
 } // END SECTION

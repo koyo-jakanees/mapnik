@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,32 +25,86 @@
 
 // mapnik
 #include <mapnik/config.hpp>
+#include <mapnik/css/css_grammar_x3.hpp>
 #include <mapnik/svg/svg_path_attributes.hpp>
 #include <mapnik/svg/svg_converter.hpp>
 #include <mapnik/svg/svg_path_adapter.hpp>
 #include <mapnik/gradient.hpp>
 #include <mapnik/util/noncopyable.hpp>
-
 // stl
 #include <map>
+#include <algorithm>
+#include <deque>
+// boost
+#include <boost/optional.hpp>
+
+namespace boost { namespace property_tree { namespace detail { namespace rapidxml {
+template <typename T> class xml_node;
+}}}}
 
 namespace  mapnik { namespace svg {
 
-    class MAPNIK_DECL svg_parser : private util::noncopyable
+struct viewbox
+{
+    double x0;
+    double y0;
+    double width;
+    double height;
+};
+
+class svg_parser_error_handler
+{
+    using error_message_container = std::vector<std::string> ;
+public:
+    explicit svg_parser_error_handler(bool strict = false)
+        : strict_(strict) {}
+
+    void on_error(std::string const& msg)
     {
-        using error_message_container = std::vector<std::string> ;
-    public:
-        explicit svg_parser(svg_converter_type & path);
-        ~svg_parser();
-        error_message_container const& error_messages() const;
-        bool parse(std::string const& filename);
-        bool parse_from_string(std::string const& svg);
-        svg_converter_type & path_;
-        bool is_defs_;
-        std::map<std::string, gradient> gradient_map_;
-        std::pair<std::string, gradient> temporary_gradient_;
-        error_message_container error_messages_;
-    };
+        if (strict_) throw std::runtime_error(msg);
+        else
+        {
+            // avoid duplicate messages
+            if (std::find(std::begin(error_messages_),std::end(error_messages_), msg) == std::end(error_messages_))
+            {
+                error_messages_.push_back(msg);
+            }
+        }
+    }
+    error_message_container const& error_messages() const
+    {
+        return error_messages_;
+    }
+    bool strict() const { return strict_; }
+private:
+
+    error_message_container error_messages_;
+    bool strict_;
+};
+
+class MAPNIK_DECL svg_parser : private util::noncopyable
+{
+    using error_handler = svg_parser_error_handler;
+public:
+    explicit svg_parser(svg_converter_type & path, bool strict = false);
+    ~svg_parser();
+    error_handler & err_handler();
+    void parse(std::string const& filename);
+    void parse_from_string(std::string const& svg);
+    svg_converter_type & path_;
+    bool is_defs_;
+    bool strict_;
+    bool ignore_;
+    bool css_style_;
+    std::map<std::string, gradient> gradient_map_;
+    std::map<std::string, boost::property_tree::detail::rapidxml::xml_node<char> const*> node_cache_;
+    mapnik::css_data css_data_;
+    boost::optional<viewbox> vbox_{};
+    double normalized_diagonal_ = 0.0;
+    agg::trans_affine viewbox_tr_{};
+    std::deque<double> font_sizes_{};
+    error_handler err_handler_;
+};
 
 }}
 

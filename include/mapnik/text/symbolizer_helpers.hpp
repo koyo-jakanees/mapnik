@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,14 @@ struct placement_finder_adapter
 
 };
 
-using vertex_converter_type = vertex_converter<clip_line_tag, transform_tag, affine_transform_tag, extend_tag, simplify_tag, smooth_tag>;
+using vertex_converter_type = vertex_converter<clip_line_tag,
+                                               clip_poly_tag,
+                                               transform_tag,
+                                               affine_transform_tag,
+                                               extend_tag,
+                                               simplify_tag,
+                                               smooth_tag,
+                                               offset_transform_tag>;
 
 class base_symbolizer_helper
 {
@@ -152,6 +159,10 @@ public:
     // Return all placements.
     placements_list const& get() const;
 protected:
+    void init_converters();
+    void initialize_points() const;
+    template <template <typename, typename> class GridAdapter>
+    void initialize_grid_points() const;
     bool next_point_placement() const;
     bool next_line_placement() const;
 

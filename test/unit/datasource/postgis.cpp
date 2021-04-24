@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2015 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 #include <mapnik/geometry/geometry_type.hpp>
 #include <mapnik/unicode.hpp>
 #include <mapnik/util/fs.hpp>
+#include "../../../plugins/input/postgis/connection_manager.hpp"
 
 /*
   Compile and run just this test:
@@ -289,6 +290,26 @@ TEST_CASE("postgis") {
             REQUIRE(ext.maxy() == 4);
         }
 
+        SECTION("Postgis substitutes numeric !tokens! always with decimal point")
+        {
+            mapnik::parameters params(base_params);
+            params["table"] = "(SELECT geom,"
+                                     " pg_typeof(!pixel_width!)::text as t_pixel_width,"
+                                     " pg_typeof(!pixel_height!)::text as t_pixel_height,"
+                                     " pg_typeof(!scale_denominator!)::text as t_scale_denom"
+                              " FROM public.test LIMIT 1) as data";
+            auto ds = mapnik::datasource_cache::instance().create(params);
+            REQUIRE(ds != nullptr);
+            auto featureset = all_features(ds);
+            auto feature = featureset->next();
+            CHECKED_IF(feature != nullptr)
+            {
+                CHECK(feature->get("t_pixel_width").to_string() == "numeric");
+                CHECK(feature->get("t_pixel_height").to_string() == "numeric");
+                CHECK(feature->get("t_scale_denom").to_string() == "numeric");
+            }
+        }
+
         SECTION("Postgis doesn't interpret @domain in email address as @variable")
         {
             mapnik::parameters params(base_params);
@@ -405,4 +426,23 @@ TEST_CASE("postgis") {
 */
 
     }
+}
+
+
+TEST_CASE("ConnectionCreator") {
+
+SECTION("ConnectionCreator::id() should not expose password")
+{
+    mapnik::parameters params;
+    params["host"]              = "H";
+    params["port"]              = "1234";
+    params["dbname"]            = "D";
+    params["user"]              = "U";
+    params["password"]          = "SECRET";
+    params["connect_timeout"]   = "5";
+    params["application_name"]  = "A";
+    ConnectionCreator<Connection> creator(params);
+    CHECK(creator.id() == "host=H port=1234 dbname=D user=U connect_timeout=5 application_name=A");
+}
+
 }

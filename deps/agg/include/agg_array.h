@@ -124,6 +124,14 @@ namespace agg
             memcpy(m_array, v.m_array, sizeof(T) * m_size);
         }
 
+        pod_array(self_type && rhs) :
+            m_array(rhs.m_array),
+            m_size(rhs.m_size)
+        {
+            rhs.m_array = nullptr;
+            rhs.m_size = 0;
+        }
+
         void resize(unsigned _size)
         {
             if(_size != m_size)
@@ -171,6 +179,8 @@ namespace agg
         // Copying
         pod_vector(const pod_vector<T>&);
         const pod_vector<T>& operator = (const pod_vector<T>&);
+
+        pod_vector(pod_vector<T> && rhs);
 
         // Set new capacity. All data is lost, size is set to zero.
         void capacity(unsigned cap, unsigned extra_tail=0);
@@ -270,6 +280,17 @@ namespace agg
         m_array(v.m_capacity ? pod_allocator<T>::allocate(v.m_capacity) : 0)
     {
         memcpy(m_array, v.m_array, sizeof(T) * v.m_size);
+    }
+
+    //------------------------------------------------------------------------
+    template<class T> pod_vector<T>::pod_vector(pod_vector<T> && rhs) :
+        m_size(rhs.m_size),
+        m_capacity(rhs.m_capacity),
+        m_array(rhs.m_array)
+    {
+        rhs.m_size = 0;
+        rhs.m_capacity = 0;
+        rhs.m_array = nullptr;
     }
 
     //------------------------------------------------------------------------

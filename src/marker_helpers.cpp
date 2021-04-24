@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,11 +25,12 @@
 #include <mapnik/svg/svg_converter.hpp>
 #include <mapnik/label_collision_detector.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_ellipse.h"
 #include "agg_color_rgba.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
 
@@ -94,7 +95,7 @@ bool push_explicit_style(svg_attribute_type const& src,
         for(unsigned i = 0; i < src.size(); ++i)
         {
             dst.push_back(src[i]);
-            mapnik::svg::path_attributes & attr = dst.last();
+            mapnik::svg::path_attributes & attr = dst.back();
             if (!attr.visibility_flag)
                 continue;
             success = true;
@@ -250,7 +251,7 @@ void apply_markers_multi(feature_impl const& feature, attributes const& vars,
                 converter.apply(va, proc);
             }
         }
-        else if ((placement == MARKER_POINT_PLACEMENT || placement == MARKER_INTERIOR_PLACEMENT) &&
+        else if ((placement == MARKER_POINT_PLACEMENT || placement == MARKER_INTERIOR_PLACEMENT || placement == MARKER_POLYLABEL_PLACEMENT) &&
                  multi_policy == MARKER_LARGEST_MULTI)
         {
             // Only apply to path with largest envelope area

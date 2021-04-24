@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,13 +24,15 @@
 #define MAPNIK_SVG_PATH_GRAMMAR_X3_DEF_HPP
 
 // mapnik
-#include <mapnik/global.hpp>
 #include <mapnik/config.hpp>
 #include <mapnik/svg/svg_path_grammar_x3.hpp>
-#pragma GCC diagnostic push
+#include <mapnik/util/math.hpp>
+
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik { namespace svg { namespace grammar {
 
@@ -38,29 +40,41 @@ namespace x3 = boost::spirit::x3;
 
 using x3::lit;
 using x3::double_;
-using x3::int_;
+using x3::char_;
 using x3::no_case;
 
 using coord_type = std::tuple<double,double>;
 
+template <typename Context>
+svg_converter_type & extract_path(Context const& ctx)
+{
+    return x3::get<svg_path_tag>(ctx);
+}
+
+template <typename Context>
+bool & extract_relative(Context const& ctx)
+{
+    return x3::get<relative_tag>(ctx);
+}
+
 auto const move_to = [] (auto const& ctx)
 {
-    x3::get<svg_path_tag>(ctx).get().move_to(std::get<0>(_attr(ctx)), std::get<1>(_attr(ctx)), x3::get<relative_tag>(ctx));
+    extract_path(ctx).move_to(std::get<0>(_attr(ctx)), std::get<1>(_attr(ctx)), x3::get<relative_tag>(ctx));
 };
 
 auto const line_to = [] (auto const & ctx)
 {
-    x3::get<svg_path_tag>(ctx).get().line_to(std::get<0>(_attr(ctx)), std::get<1>(_attr(ctx)), x3::get<relative_tag>(ctx));
+    extract_path(ctx).line_to(std::get<0>(_attr(ctx)), std::get<1>(_attr(ctx)), x3::get<relative_tag>(ctx));
 };
 
 auto const hline_to = [] (auto const& ctx)
 {
-    x3::get<svg_path_tag>(ctx).get().hline_to(_attr(ctx), x3::get<relative_tag>(ctx));
+    extract_path(ctx).hline_to(_attr(ctx), x3::get<relative_tag>(ctx));
 };
 
 auto const vline_to = [] (auto const& ctx)
 {
-    x3::get<svg_path_tag>(ctx).get().vline_to(_attr(ctx), x3::get<relative_tag>(ctx));
+    extract_path(ctx).vline_to(_attr(ctx), x3::get<relative_tag>(ctx));
 };
 
 auto const curve4 = [] (auto const& ctx)
@@ -69,10 +83,10 @@ auto const curve4 = [] (auto const& ctx)
     auto const& p0 = boost::fusion::at_c<0>(attr);
     auto const& p1 = boost::fusion::at_c<1>(attr);
     auto const& p2 = boost::fusion::at_c<2>(attr);
-    x3::get<svg_path_tag>(ctx).get().curve4(std::get<0>(p0),std::get<1>(p0),
-                                            std::get<0>(p1),std::get<1>(p1),
-                                            std::get<0>(p2),std::get<1>(p2),
-                                            x3::get<relative_tag>(ctx));
+    extract_path(ctx).curve4(std::get<0>(p0),std::get<1>(p0),
+                             std::get<0>(p1),std::get<1>(p1),
+                             std::get<0>(p2),std::get<1>(p2),
+                             x3::get<relative_tag>(ctx));
 };
 
 auto const curve4_smooth = [] (auto const& ctx)
@@ -80,9 +94,9 @@ auto const curve4_smooth = [] (auto const& ctx)
     auto const& attr = _attr(ctx);
     auto const& p0 = boost::fusion::at_c<0>(attr);
     auto const& p1 = boost::fusion::at_c<1>(attr);
-    x3::get<svg_path_tag>(ctx).get().curve4(std::get<0>(p0),std::get<1>(p0),
-                                            std::get<0>(p1),std::get<1>(p1),
-                                            x3::get<relative_tag>(ctx));
+    extract_path(ctx).curve4(std::get<0>(p0),std::get<1>(p0),
+                             std::get<0>(p1),std::get<1>(p1),
+                             x3::get<relative_tag>(ctx));
 };
 
 auto const curve3 = [] (auto const& ctx)
@@ -90,16 +104,17 @@ auto const curve3 = [] (auto const& ctx)
     auto const& attr = _attr(ctx);
     auto const& p0 = boost::fusion::at_c<0>(attr);
     auto const& p1 = boost::fusion::at_c<1>(attr);
-    x3::get<svg_path_tag>(ctx).get().curve3(std::get<0>(p0),std::get<1>(p0),
-                                            std::get<0>(p1),std::get<1>(p1),
-                                            x3::get<relative_tag>(ctx));
+    extract_path(ctx).curve3(std::get<0>(p0),std::get<1>(p0),
+                             std::get<0>(p1),std::get<1>(p1),
+                             x3::get<relative_tag>(ctx));
 };
 
 auto const curve3_smooth = [] (auto const& ctx)
 {
     auto const& attr = _attr(ctx);
-    x3::get<svg_path_tag>(ctx).get().curve3(std::get<0>(attr),std::get<1>(attr),
-                                            x3::get<relative_tag>(ctx));
+    extract_path(ctx).curve3(std::get<0>(attr),
+                             std::get<1>(attr),
+                             x3::get<relative_tag>(ctx));
 };
 
 
@@ -108,34 +123,33 @@ auto const arc_to = [] (auto & ctx)
     auto const& attr = _attr(ctx);
     auto const& p = boost::fusion::at_c<0>(attr);
     double angle = boost::fusion::at_c<1>(attr);
-    int large_arc_flag = boost::fusion::at_c<2>(attr);
-    int sweep_flag = boost::fusion::at_c<3>(attr);
+    bool large_arc_flag = boost::fusion::at_c<2>(attr);
+    bool sweep_flag = boost::fusion::at_c<3>(attr);
     auto const& v = boost::fusion::at_c<4>(attr);
-    x3::get<svg_path_tag>(ctx).get().arc_to(std::get<0>(p),std::get<1>(p),
-                                            deg2rad(angle), large_arc_flag, sweep_flag,
-                                            std::get<0>(v),std::get<1>(v),
-                                            x3::get<relative_tag>(ctx));
+    extract_path(ctx).arc_to(std::get<0>(p), std::get<1>(p),
+                             util::radians(angle),
+                             large_arc_flag, sweep_flag,
+                             std::get<0>(v),std::get<1>(v),
+                             x3::get<relative_tag>(ctx));
 };
 
 auto const close_path = [] (auto const& ctx)
 {
-    x3::get<svg_path_tag>(ctx).get().close_subpath();
+    extract_path(ctx).close_subpath();
 };
 
 auto const relative = [] (auto const& ctx)
 {
-    x3::get<relative_tag>(ctx).get() = true;
+    extract_relative(ctx) = true;
 };
 
 auto const absolute = [] (auto const& ctx)
 {
-    x3::get<relative_tag>(ctx).get() = false;
+    extract_relative(ctx) = false;
 };
 
-// exported rules
-svg_path_grammar_type const svg_path = "SVG Path";
-svg_points_grammar_type const svg_points = "SVG_Points";
-
+// arc flags parser 0/1
+x3::uint_parser<std::uint8_t, 10, 1, 1> flag;
 // rules
 auto const coord = x3::rule<class coord_tag, coord_type>{} = double_ > -lit(',') > double_;
 
@@ -167,8 +181,8 @@ auto const T = x3::rule<class T_tag> {} = (lit('T')[absolute] | lit('t')[relativ
     > ((coord ) [curve3_smooth] % -lit(',')); // +curve3_smooth (smooth-quadratic-bezier-curveto)
 
 auto const A = x3::rule<class A_tag> {} = (lit('A')[absolute] | lit('a')[relative])
-    > ((coord > -lit(',') > double_ > -lit(',') > int_ > -lit(',') > int_ > -lit(',') > coord)
-        [arc_to] % -lit(',')); // arc_to;
+    > ((coord > -lit(',') > double_ > -lit(',') > flag > -lit(',') > flag > -lit(',') > coord)
+       [arc_to] % -lit(',')); // +arc_to;
 
 auto const Z = x3::rule<class Z_tag>{} = no_case[lit('z')] [close_path]; // close path
 
@@ -178,26 +192,15 @@ auto const cmd = x3::rule<class cmd_tag> {} = M > *drawto_cmd ;
 
 auto const svg_path_def = +cmd;
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 BOOST_SPIRIT_DEFINE(
     svg_path,
     svg_points
     );
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
-}
-
-grammar::svg_path_grammar_type const& svg_path_grammar()
-{
-    return grammar::svg_path;
-}
-
-grammar::svg_points_grammar_type const& svg_points_grammar()
-{
-    return grammar::svg_points;
-}
-
-}}
+}}}
 
 #endif // MAPNIK_SVG_PATH_GRAMMAR_X3_HPP

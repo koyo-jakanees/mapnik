@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,10 +35,11 @@
 #include <mapnik/svg/svg_path_adapter.hpp>
 #include <mapnik/svg/svg_converter.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_trans_affine.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik {
 
@@ -75,10 +76,10 @@ struct thunk_renderer<image_rgba8> : render_thunk_list_dispatch
         using pixfmt_comp_type = agg::pixfmt_custom_blend_rgba<blender_type, buf_type>;
         using renderer_base = agg::renderer_base<pixfmt_comp_type>;
         using renderer_type = agg::renderer_scanline_aa_solid<renderer_base>;
-        using svg_renderer_type = svg::svg_renderer_agg<svg_path_adapter,
-                                                        svg_attribute_type,
-                                                        renderer_type,
-                                                        pixfmt_comp_type>;
+        using svg_renderer_type = svg::renderer_agg<svg_path_adapter,
+                                                    svg_attribute_type,
+                                                    renderer_type,
+                                                    pixfmt_comp_type>;
         ras_ptr_->reset();
         buf_type render_buffer(buf_.bytes(), buf_.width(), buf_.height(), buf_.row_size());
         pixfmt_comp_type pixf(render_buffer);
@@ -90,7 +91,8 @@ struct thunk_renderer<image_rgba8> : render_thunk_list_dispatch
 
         agg::trans_affine offset_tr = thunk.tr_;
         offset_tr.translate(offset_.x, offset_.y);
-        render_vector_marker(svg_renderer, *ras_ptr_, renb, thunk.src_->bounding_box(), offset_tr, thunk.opacity_, thunk.snap_to_pixels_);
+        render_vector_marker(svg_renderer, *ras_ptr_, renb, thunk.src_->bounding_box(),
+                             offset_tr, thunk.opacity_, thunk.snap_to_pixels_);
     }
 
     virtual void operator()(raster_marker_render_thunk const& thunk)

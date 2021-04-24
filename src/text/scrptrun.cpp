@@ -14,15 +14,20 @@
  * http://source.icu-project.org/repos/icu/icu/trunk/license.html
  */
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <unicode/utypes.h>
 #include <unicode/uscript.h>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <mapnik/text/scrptrun.hpp>
 
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+template <class T, std::size_t N>
+constexpr std::size_t ARRAY_SIZE(const T (&array)[N]) noexcept
+{
+    return N;
+}
 
 const char ScriptRun::fgClassID=0;
 
@@ -156,8 +161,12 @@ UBool ScriptRun::next()
         // characters above it on the stack will be poped.
         if (pairIndex >= 0) {
             if ((pairIndex & 1) == 0) {
-                parenStack[++parenSP].pairIndex = pairIndex;
-                parenStack[parenSP].scriptCode  = scriptCode;
+                ++parenSP;
+                if (static_cast<std::size_t>(parenSP) < parenStack.size())
+                    parenStack[parenSP] = { pairIndex, scriptCode };
+                else
+                    parenStack.emplace_back(pairIndex, scriptCode);
+                startSP = parenSP;
             } else if (parenSP >= 0) {
                 int32_t pi = pairIndex & ~1;
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -145,6 +145,12 @@ unsigned polygon_vertex_adapter<T>::vertex(coordinate_type * x, coordinate_type 
     {
         current_index_ = 0;
         end_index_ = poly_[rings_itr_].size();
+        if (end_index_ == 0)
+        {
+            *x = 0;
+            *y = 0;
+            return mapnik::SEG_CLOSE;
+        }
         point<T> const& coord = poly_[rings_itr_][current_index_++];
         *x = coord.x;
         *y = coord.y;

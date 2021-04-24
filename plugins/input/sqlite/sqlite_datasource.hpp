@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -62,7 +62,7 @@ private:
     // Fill init_statements with any statements
     // needed to attach auxillary databases
     void parse_attachdb(std::string const& attachdb) const;
-    std::string populate_tokens(std::string const& sql) const;
+    std::string populate_tokens(std::string const& sql, double pixel_width, double pixel_height) const;
 
     mapnik::box2d<double> extent_;
     bool extent_initialized_;
@@ -80,8 +80,11 @@ private:
     mapnik::value_integer row_limit_;
     // TODO - also add to postgis.input
     const std::string intersects_token_;
+    const std::string pixel_width_token_;
+    const std::string pixel_height_token_;
     mapnik::layer_descriptor desc_;
     mapnik::wkbFormat format_;
+    bool twkb_encoding_;
     bool use_spatial_index_;
     bool has_spatial_index_;
     bool using_subquery_;

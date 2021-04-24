@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ namespace filter {
 
 bool parse_image_filters(std::string const& str, std::vector<filter_type> & image_filters)
 {
-    auto const& grammar = mapnik::image_filter_grammar();
+    auto const& grammar = mapnik::image_filter::start;
     auto itr = str.begin();
     auto end = str.end();
 

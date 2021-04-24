@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -611,7 +611,7 @@ struct convert<value_integer>
 
     value_integer operator()(value_double val) const
     {
-        return static_cast<value_integer>(rint(val));
+        return static_cast<value_integer>(std::floor(val) + .5);
     }
 
     value_integer operator()(value_bool val) const

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2015 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,11 +26,12 @@
 #include <mapnik/wkb.hpp>
 #include "connection_manager.hpp"
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <memory>
 
@@ -83,20 +84,15 @@ int main ( int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        boost::optional<std::string> host;
-        boost::optional<std::string> port ;
-        boost::optional<std::string> dbname;
-        boost::optional<std::string> user;
-        boost::optional<std::string> password;
-        boost::optional<std::string> connect_timeout("4");
+        mapnik::parameters conn_params;
+        conn_params["application_name"] = "pgsql2sqlite";
+        for (auto k : {"host", "port", "dbname", "user", "password"})
+        {
+            if (!vm[k].empty())
+                conn_params[k] = vm[k].as<std::string>();
+        }
 
-        if (vm.count("host")) host = vm["host"].as<std::string>();
-        if (vm.count("port")) port = vm["port"].as<std::string>();
-        if (vm.count("dbname")) dbname = vm["dbname"].as<std::string>();
-        if (vm.count("user")) user = vm["user"].as<std::string>();
-        if (vm.count("password")) password = vm["password"].as<std::string>();
-
-        ConnectionCreator<Connection> creator(host,port,dbname,user,password,connect_timeout);
+        ConnectionCreator<Connection> creator(conn_params);
         try
         {
             std::shared_ptr<Connection> conn(creator());
@@ -112,8 +108,8 @@ int main ( int argc, char** argv)
         catch (mapnik::datasource_exception & ex)
         {
             std::cerr << ex.what() << "\n";
+            return EXIT_FAILURE;
         }
-
     }
     catch(std::exception& e) {
         std::cerr << desc << "\n";

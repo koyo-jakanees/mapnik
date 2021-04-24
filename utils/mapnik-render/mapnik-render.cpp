@@ -8,11 +8,12 @@
 #include <mapnik/datasource_cache.hpp>
 #include <mapnik/font_engine_freetype.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <string>
 
@@ -29,6 +30,8 @@ int main (int argc,char** argv)
     bool params_as_variables = false;
     mapnik::logger logger;
     logger.set_severity(mapnik::logger::error);
+    int map_width = 600;
+    int map_height = 400;
 
     try
     {
@@ -41,6 +44,8 @@ int main (int argc,char** argv)
             ("xml",po::value<std::string>(),"xml map to read")
             ("img",po::value<std::string>(),"image to render")
             ("scale-factor",po::value<double>(),"scale factor for rendering")
+            ("map-width",po::value<int>(),"map width in pixels")
+            ("map-height",po::value<int>(),"map height in pixels")
             ("variables","make map parameters available as render-time variables")
             ;
 
@@ -103,9 +108,17 @@ int main (int argc,char** argv)
             params_as_variables = true;
         }
 
+        if (vm.count("map-width")) {
+          map_width = vm["map-width"].as<int>();
+        }
+
+        if (vm.count("map-height")) {
+          map_height = vm["map-height"].as<int>();
+        }
+
         mapnik::datasource_cache::instance().register_datasources("./plugins/input/");
         mapnik::freetype_engine::register_fonts("./fonts",true);
-        mapnik::Map map(600,400);
+        mapnik::Map map(map_width,map_height);
         mapnik::load_map(map,xml_file,true);
         map.zoom_all();
         mapnik::image_rgba8 im(map.width(),map.height());

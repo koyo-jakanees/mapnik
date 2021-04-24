@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,10 +24,11 @@
 #define MAPNIK_JSON_GENERIC_JSON_GRAMMAR_X3_HPP
 
 #include <mapnik/json/json_value.hpp>
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #include <vector>
 
@@ -39,13 +40,13 @@ namespace grammar {
 
 using generic_json_grammar_type = x3::rule<class generic_json_tag, json_value>;
 using generic_json_key_value_type = x3::rule<class json_object_element_tag, json_object_element>;
+
+generic_json_grammar_type const value = "JSON Value";
+generic_json_key_value_type const key_value = "JSON Object element";
+
 BOOST_SPIRIT_DECLARE(generic_json_grammar_type);
 BOOST_SPIRIT_DECLARE(generic_json_key_value_type);
-}
 
-grammar::generic_json_grammar_type const& generic_json_grammar();
-grammar::generic_json_key_value_type const& generic_json_key_value();
-
-}}
+}}}
 
 #endif // MAPNIK_JSON_GENERIC_JSON_GRAMMAR_X3_HPP

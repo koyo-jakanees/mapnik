@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -51,10 +51,11 @@
 #include <map>
 #include <tuple>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/optional.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik
 {
@@ -94,7 +95,10 @@ enum class property_types : std::uint8_t
     target_vertical_alignment,
     target_upright,
     target_direction,
-    target_font_feature_settings
+    target_font_feature_settings,
+    target_line_pattern,
+    target_smooth_algorithm,
+    target_scaling_method
 };
 
 template <typename T>
@@ -189,6 +193,8 @@ ENUM_FROM_STRING( text_transform_enum )
 ENUM_FROM_STRING( text_upright_enum )
 ENUM_FROM_STRING( direction_enum )
 ENUM_FROM_STRING( gamma_method_enum )
+ENUM_FROM_STRING( line_pattern_enum )
+ENUM_FROM_STRING( smooth_algorithm_enum )
 
 // enum
 template <typename T, bool is_enum = true>

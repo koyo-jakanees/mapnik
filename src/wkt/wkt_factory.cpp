@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@ bool from_wkt(std::string const& wkt, mapnik::geometry::geometry<double> & geom)
     bool result;
     try
     {
-        result  = x3::phrase_parse(itr, end, wkt_grammar(), space, geom);
+        result  = x3::phrase_parse(itr, end, grammar::wkt, space, geom);
     }
     catch (x3::expectation_failure<std::string::const_iterator> const& ex)
     {

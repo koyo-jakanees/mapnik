@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -38,10 +38,11 @@
 #include <mapnik/timer.hpp>
 #include <mapnik/value/types.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <cfloat> // FLT_MAX
@@ -49,7 +50,6 @@
 #include <algorithm>
 #include <set>
 #include <sstream>
-#include <iomanip>
 
 DATASOURCE_PLUGIN(pgraster_datasource)
 
@@ -79,12 +79,7 @@ pgraster_datasource::pgraster_datasource(parameters const& params)
       use_overviews_(*params.get<mapnik::boolean_type>("use_overviews", false)),
       clip_rasters_(*params.get<mapnik::boolean_type>("clip_rasters", false)),
       desc_(*params.get<std::string>("type"), "utf-8"),
-      creator_(params.get<std::string>("host"),
-             params.get<std::string>("port"),
-             params.get<std::string>("dbname"),
-             params.get<std::string>("user"),
-             params.get<std::string>("password"),
-             params.get<std::string>("connect_timeout", "4")),
+      creator_(params),
       re_tokens_("!(@?\\w+)!"), // matches  !mapnik_var!  or  !@user_var!
       pool_max_size_(*params_.get<value_integer>("max_size", 10)),
       persist_connection_(*params.get<mapnik::boolean_type>("persist_connection", true)),
@@ -172,7 +167,7 @@ pgraster_datasource::pgraster_datasource(parameters const& params)
                 (raster_table_, parsed_schema_, parsed_table_);
         }
 
-        // If we do not know either the geometry_field or the srid or we
+        // If we do not know either the raster_field or the srid or we
         // want to use overviews but do not know about schema, or
         // no extent was specified, then attempt to fetch the missing
         // information from a raster_columns entry.
@@ -180,7 +175,7 @@ pgraster_datasource::pgraster_datasource(parameters const& params)
         // This will return no records if we are querying a bogus table returned
         // from the simplistic table parsing in table_from_sql() or if
         // the table parameter references a table, view, or subselect not
-        // registered in the geometry columns.
+        // registered in the raster_columns.
         //
         geometryColumn_ = mapnik::sql_utils::unquote_copy('"', raster_field_);
         if (!parsed_table_.empty() && (
@@ -265,7 +260,7 @@ pgraster_datasource::pgraster_datasource(parameters const& params)
 
             // If we still do not know the srid then we can try to fetch
             // it from the 'table_' parameter, which should work even if it is
-            // a subselect as long as we know the geometry_field to query
+            // a subselect as long as we know the raster_field to query
             if (! geometryColumn_.empty() && srid_ <= 0)
             {
                 s.str("");
@@ -443,7 +438,7 @@ pgraster_datasource::pgraster_datasource(parameters const& params)
             MAPNIK_LOG_DEBUG(pgraster) << "pgraster_datasource: Table " << table_ << " is using SRID=" << srid_;
         }
 
-        // At this point the geometry_field may still not be known
+        // At this point the raster_field may still not be known
         // but we'll catch that where more useful...
         MAPNIK_LOG_DEBUG(pgraster) << "pgraster_datasource: Using SRID=" << srid_;
         MAPNIK_LOG_DEBUG(pgraster) << "pgraster_datasource: Using geometry_column=" << geometryColumn_;
@@ -598,22 +593,11 @@ layer_descriptor pgraster_datasource::get_descriptor() const
 std::string pgraster_datasource::sql_bbox(box2d<double> const& env) const
 {
     std::ostringstream b;
-
-    if (srid_ > 0)
-    {
-        b << "ST_SetSRID(";
-    }
-
-    b << "'BOX(";
-    b << std::setprecision(16);
-    b << env.minx() << " " << env.miny() << ",";
-    b << env.maxx() << " " << env.maxy() << ")'::box2d";
-
-    if (srid_ > 0)
-    {
-        b << ", " << srid_ << ")";
-    }
-
+    b.precision(16);
+    b << "ST_MakeEnvelope(";
+    b << env.minx() << "," << env.miny() << ",";
+    b << env.maxx() << "," << env.maxy() << ",";
+    b << std::max(srid_, 0) << ")";
     return b.str();
 }
 
@@ -636,6 +620,9 @@ std::string pgraster_datasource::populate_tokens(std::string const& sql,
     std::cmatch m;
     char const* start = sql.data();
     char const* end = start + sql.size();
+
+    populated_sql.precision(16);
+    populated_sql << std::showpoint;
 
     while (std::regex_search(start, end, m, re_tokens_))
     {
@@ -835,7 +822,7 @@ featureset_ptr pgraster_datasource::features_with_context(query const& q,process
                 s_error << parsed_schema_ << ".";
             }
             s_error << parsed_table_
-                    << "'. Please manually provide the 'geometry_field' parameter or add an entry "
+                    << "'. Please manually provide the 'raster_field' parameter or add an entry "
                     << "in the geometry_columns for '";
 
             if (!parsed_schema_.empty())
@@ -998,7 +985,7 @@ featureset_ptr pgraster_datasource::features_at_point(coord2d const& pt, double 
                     s_error << parsed_schema_ << ".";
                 }
                 s_error << parsed_table_
-                        << "'. Please manually provide the 'geometry_field' parameter or add an entry "
+                        << "'. Please manually provide the 'raster_field' parameter or add an entry "
                         << "in the geometry_columns for '";
 
                 if (!parsed_schema_.empty())
@@ -1117,7 +1104,7 @@ box2d<double> pgraster_datasource::envelope() const
                   throw mapnik::datasource_exception("Pgraster Plugin: " + s_error.str());
                 }
                 s << "SELECT ST_XMin(ext),ST_YMin(ext),ST_XMax(ext),ST_YMax(ext)"
-                  << " FROM (SELECT ST_EstimatedExtent('";
+                  << " FROM (SELECT ST_EstimatedExtent(";
 
                 if (! sch.empty())
                 {

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,10 +35,11 @@
 #include <mapnik/timer.hpp>
 #include <mapnik/value/types.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/algorithm/string.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 // stl
 #include <cfloat> // FLT_MAX
@@ -47,7 +48,6 @@
 #include <algorithm>
 #include <set>
 #include <sstream>
-#include <iomanip>
 
 DATASOURCE_PLUGIN(postgis_datasource)
 
@@ -72,12 +72,7 @@ postgis_datasource::postgis_datasource(parameters const& params)
       extent_initialized_(false),
       simplify_geometries_(false),
       desc_(postgis_datasource::name(), "utf-8"),
-      creator_(params.get<std::string>("host"),
-             params.get<std::string>("port"),
-             params.get<std::string>("dbname"),
-             params.get<std::string>("user"),
-             params.get<std::string>("password"),
-             params.get<std::string>("connect_timeout", "4")),
+      creator_(params),
       pool_max_size_(*params_.get<mapnik::value_integer>("max_size", 10)),
       persist_connection_(*params.get<mapnik::boolean_type>("persist_connection", true)),
       extent_from_subquery_(*params.get<mapnik::boolean_type>("extent_from_subquery", false)),
@@ -508,22 +503,11 @@ layer_descriptor postgis_datasource::get_descriptor() const
 std::string postgis_datasource::sql_bbox(box2d<double> const& env) const
 {
     std::ostringstream b;
-
-    if (srid_ > 0)
-    {
-        b << "ST_SetSRID(";
-    }
-
-    b << "'BOX3D(";
-    b << std::setprecision(16);
-    b << env.minx() << " " << env.miny() << ",";
-    b << env.maxx() << " " << env.maxy() << ")'::box3d";
-
-    if (srid_ > 0)
-    {
-        b << ", " << srid_ << ")";
-    }
-
+    b.precision(16);
+    b << "ST_MakeEnvelope(";
+    b << env.minx() << "," << env.miny() << ",";
+    b << env.maxx() << "," << env.maxy() << ",";
+    b << std::max(srid_, 0) << ")";
     return b.str();
 }
 
@@ -547,6 +531,9 @@ std::string postgis_datasource::populate_tokens(
     std::cmatch m;
     char const* start = sql.data();
     char const* end = start + sql.size();
+
+    populated_sql.precision(16);
+    populated_sql << std::showpoint;
 
     while (std::regex_search(start, end, m, re_tokens_))
     {
@@ -1019,7 +1006,7 @@ box2d<double> postgis_datasource::envelope() const
             if (estimate_extent_)
             {
                 s << "SELECT ST_XMin(ext),ST_YMin(ext),ST_XMax(ext),ST_YMax(ext)"
-                  << " FROM (SELECT ST_EstimatedExtent('";
+                  << " FROM (SELECT ST_EstimatedExtent(";
                 if (!parsed_schema_.empty())
                 {
                     s << literal(parsed_schema_) << ',';

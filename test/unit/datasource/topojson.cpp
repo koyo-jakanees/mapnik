@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,11 @@
 #include <mapnik/json/topojson_grammar_x3.hpp>
 #include <mapnik/json/topojson_utils.hpp>
 
+#define HEREDOC(...) #__VA_ARGS__
+
 namespace {
+
+bool parse_topology_string(std::string const& buffer, mapnik::topojson::topology & topo);
 
 bool parse_topology(std::string const& filename, mapnik::topojson::topology & topo)
 {
@@ -38,19 +42,40 @@ bool parse_topology(std::string const& filename, mapnik::topojson::topology & to
     buffer.resize(file.size());
     std::fread(&buffer[0], buffer.size(), 1, file.get());
     if (!file) return false;
+    return parse_topology_string(buffer, topo);
+}
+
+bool parse_topology_string(std::string const& buffer)
+{
+    mapnik::topojson::topology topo;
+    return parse_topology_string(buffer, topo);
+}
+
+bool parse_topology_string(std::string const& buffer, mapnik::topojson::topology & topo)
+{
     using space_type = boost::spirit::x3::standard::space_type;
     char const* itr = buffer.c_str();
     char const* end = itr + buffer.length();
     try
     {
-        boost::spirit::x3::phrase_parse(itr, end, mapnik::json::topojson_grammar(), space_type() , topo);
+        boost::spirit::x3::phrase_parse(itr, end, mapnik::json::grammar::topology, space_type() , topo);
     }
     catch (boost::spirit::x3::expectation_failure<char const*> const& ex)
     {
         std::cerr << "failed to parse TopoJSON..." << std::endl;
         std::cerr << ex.what() << std::endl;
         std::cerr << "Expected: " << ex.which();
-        std::cerr << " Got: \"" << std::string(ex.where(), ex.where() + 200) << "...\"" << std::endl;
+        std::cerr << "\nGot: \"";
+        auto ctx = ex.where();
+        std::streamsize len = 0;
+        // stop before NUL terminator or after 200 bytes, whichever comes first
+        for (; ctx[len] && len < 200; ++len)
+            ;
+        // extend to UTF-8 character boundary or 210 bytes, whichever comes first
+        for (; len < 210 && ((unsigned char)ctx[len] & 0xC0) == 0x80; ++len)
+            ;
+        std::cerr.write(ctx, len);
+        std::cerr << (ctx[len] ? "..." : "") << '"' << std::endl;
         return false;
     }
     return (itr == end);
@@ -58,8 +83,44 @@ bool parse_topology(std::string const& filename, mapnik::topojson::topology & to
 
 }
 
-TEST_CASE("topojson")
+TEST_CASE("TopoJSON")
 {
+    SECTION("Minimal Topology")
+    {
+        // + A topology must have a member with the name “objects” whose value is another object.
+        // + A topology must have a member with the name “arcs” whose value is an array of arcs.
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "type": "Topology", "objects": {}, "arcs": []
+              }
+              )));
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "type": "Topology", "arcs": [], "objects": {}
+              }
+              )));
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "objects": {}, "type": "Topology", "arcs": []
+              }
+              )));
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "objects": {}, "arcs": [], "type": "Topology"
+              }
+              )));
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "arcs": [], "type": "Topology", "objects": {}
+              }
+              )));
+        CHECK(parse_topology_string(HEREDOC(
+              {
+                  "arcs": [], "objects": {}, "type": "Topology"
+              }
+              )));
+    }
+
     SECTION("geometry parsing")
     {
         mapnik::value_integer feature_id = 0;
@@ -100,7 +161,7 @@ TEST_CASE("topojson")
             std::initializer_list<attr> attrs = {
                 attr{"name", tr.transcode("Test")},
                 attr{"NOM_FR", tr.transcode("Québec")},
-                attr{"boolean", mapnik::value_bool("true")},
+                attr{"boolean", mapnik::value_bool(true)},
                 attr{"description", tr.transcode("Test: \u005C")},
                 attr{"double", mapnik::value_double(1.1)},
                 attr{"int", mapnik::value_integer(1)},

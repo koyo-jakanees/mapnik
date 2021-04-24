@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,10 +25,11 @@
 
 #include <mapnik/image_filter_types.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <boost/spirit/home/x3.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik
 {
@@ -41,15 +42,10 @@ namespace image_filter
 struct image_filter_class;
 using image_filter_grammar_type = x3::rule<image_filter_class, std::vector<filter::filter_type> >;
 
+image_filter_grammar_type const start = "start";
+
 BOOST_SPIRIT_DECLARE(image_filter_grammar_type);
 
-
 }}
-
-namespace mapnik {
-
-image_filter::image_filter_grammar_type const& image_filter_grammar();
-
-}
 
 #endif // MAPNIK_IMAGE_FILTER_GRAMMAR_X3_HPP

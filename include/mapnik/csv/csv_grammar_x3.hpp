@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -59,6 +59,8 @@ struct quote_tag;
 
 struct csv_line_class;
 using csv_line_grammar_type = x3::rule<csv_line_class, csv_line>;
+
+csv_line_grammar_type const line = "csv-line";
 
 BOOST_SPIRIT_DECLARE(csv_line_grammar_type);
 

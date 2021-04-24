@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,13 +31,15 @@
 #include <mapnik/util/noncopyable.hpp>
 
 #if defined(GRID_RENDERER)
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 #include <mapnik/grid/grid_pixel.hpp>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 #endif
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore_agg.hpp>
 #include "agg_path_storage.h"
 #include "agg_conv_transform.h"
@@ -58,7 +60,7 @@
 #include "agg_gradient_lut.h"
 #include "agg_gamma_lut.h"
 #include "agg_span_interpolator_linear.h"
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 namespace mapnik  {
 namespace svg {
@@ -103,7 +105,7 @@ private:
 };
 
 template <typename VertexSource, typename AttributeSource, typename ScanlineRenderer, typename PixelFormat>
-class svg_renderer_agg : util::noncopyable
+class renderer_agg : util::noncopyable
 {
 public:
     using curved_type = agg::conv_curve<VertexSource>;
@@ -122,7 +124,7 @@ public:
     using vertex_source_type = VertexSource;
     using attribute_source_type = AttributeSource;
 
-    svg_renderer_agg(VertexSource & source, AttributeSource const& attributes)
+    renderer_agg(VertexSource & source, AttributeSource const& attributes)
         : source_(source),
           curved_(source_),
           curved_dashed_(curved_),
@@ -166,6 +168,7 @@ public:
         if (m_gradient_lut.build_lut())
         {
             agg::trans_affine transform = mtx;
+            double scale = mtx.scale();
             transform.invert();
             agg::trans_affine tr;
             tr = grad.get_transform();
@@ -183,9 +186,8 @@ public:
                 {
                     bounding_rect_single(curved_trans, path_id, &bx1, &by1, &bx2, &by2);
                 }
-
-                transform.translate(-bx1,-by1);
-                transform.scale(1.0/(bx2-bx1),1.0/(by2-by1));
+                transform.translate(-bx1/scale,-by1/scale);
+                transform.scale(scale/(bx2-bx1),scale/(by2-by1));
             }
 
             if (grad.get_gradient_type() == RADIAL)

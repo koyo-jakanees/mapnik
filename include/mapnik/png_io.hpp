@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,8 @@
 #include <mapnik/hextree.hpp>
 #include <mapnik/image.hpp>
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 
 // zlib
@@ -40,7 +41,7 @@ extern "C"
 #include <png.h>
 }
 #include <set>
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
 #define MAX_OCTREE_LEVELS 4
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ path_expression_ptr parse_path(std::string const& str)
     using boost::spirit::x3::standard_wide::space;
     std::string::const_iterator itr = str.begin();
     std::string::const_iterator end = str.end();
-    bool r = x3::phrase_parse(itr, end, path_expression_grammar(), space, *path);
+    bool r = x3::phrase_parse(itr, end, grammar::path_expression, space, *path);
     if (r && itr == end)
     {
         return path;

@@ -2,7 +2,7 @@
  *
  * This file is part of Mapnik (c++ mapping toolkit)
  *
- * Copyright (C) 2016 Artem Pavlenko
+ * Copyright (C) 2021 Artem Pavlenko
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ auto append = [](auto const& ctx)
 
 namespace detail {
 
-void push_utf8_impl(std::string & str, uchar code_point)
+static inline void push_utf8_impl(std::string & str, uchar code_point)
 {
     using insert_iterator = std::back_insert_iterator<std::string>;
     insert_iterator iter(str);
@@ -104,39 +104,38 @@ using x3::char_;
 using x3::eol;
 using x3::no_skip;
 
-x3::uint_parser<char,  16, 2, 2> const hex2 {};
+x3::uint_parser<std::uint8_t,  16, 2, 2> const hex2 {};
 x3::uint_parser<std::uint16_t, 16, 4, 4> const hex4 {};
 x3::uint_parser<uchar, 16, 8, 8> const hex8 {};
 
-// start rule
-unicode_string_grammar_type const unicode_string("Unicode String");
 // rules
 x3::rule<class double_quoted_tag, std::string> const double_quoted("Double-quoted string");
 x3::rule<class escaped_tag, std::string> const escaped("Escaped Character");
 x3::rule<class escaped_unicode_tag, std::string> const escaped_unicode("Escaped Unicode code point(s)");
 x3::rule<class utf16_string_tag, std::vector<std::uint16_t>> const utf16_string("UTF16 encoded string");
 
-auto unicode_string_def = double_quoted
+static auto unicode_string_def = double_quoted
     ;
-auto utf16_string_def = lit('u') > hex4 > *(lit("\\u") > hex4)
+static auto utf16_string_def = lit('u') > hex4 > *(lit("\\u") > hex4)
     ;
-auto escaped_unicode_def =
+static auto escaped_unicode_def =
     (lit('x') > hex2[push_char])
     |
     utf16_string[push_utf16]
     |
     (lit('U') > hex8[push_utf8])
     ;
-auto const escaped_def = lit('\\') >
+static auto const escaped_def = lit('\\') >
     (escaped_unicode[append]
      |
      char_("0abtnvfre\"/\\N_LP \t")[push_esc]
      |
      eol) // continue to next line
     ;
-auto const double_quoted_def = lit('"') > no_skip[*(escaped[append] | (~char_('"'))[append])] > lit('"');
+static auto const double_quoted_def = lit('"') > no_skip[*(escaped[append] | (~char_('"'))[append])] > lit('"');
 
-#pragma GCC diagnostic push
+#include <mapnik/warning.hpp>
+MAPNIK_DISABLE_WARNING_PUSH
 #include <mapnik/warning_ignore.hpp>
 
 BOOST_SPIRIT_DEFINE(
@@ -147,13 +146,8 @@ BOOST_SPIRIT_DEFINE(
     utf16_string
     );
 
-#pragma GCC diagnostic pop
+MAPNIK_DISABLE_WARNING_POP
 
-}
-grammar::unicode_string_grammar_type const& unicode_string_grammar()
-{
-    return grammar::unicode_string;
-}
-}}
+}}}
 
 #endif // MAPNIK_JSON_UNICODE_STRING_GRAMMAR_X3_DEF_HPP
